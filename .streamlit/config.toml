@@ -1,0 +1,44 @@
+[server]
+# Só este computador acessa o app (por padrão o Streamlit também atende a rede local)
+address = "localhost"
+
+[client]
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+font = "Instrument Sans:https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+baseFontSize = 15
+baseRadius = "10px"
+buttonRadius = "10px"
+showWidgetBorder = true
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "26px"
+metricValueFontWeight = 600
+
+[theme.light]
+primaryColor = "#18181b"
+backgroundColor = "#f6f6f7"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#18181b"
+borderColor = "#d1d1d8"
+linkColor = "#0d6e66"
+
+[theme.light.sidebar]
+backgroundColor = "#fafafb"
+secondaryBackgroundColor = "#ffffff"
+
+[theme.dark]
+primaryColor = "#ededef"
+backgroundColor = "#141416"
+secondaryBackgroundColor = "#1a1a1d"
+textColor = "#ededef"
+borderColor = "#3a3a42"
+linkColor = "#3fcfb9"
+
+[theme.dark.sidebar]
+backgroundColor = "#18181b"
+secondaryBackgroundColor = "#1a1a1d"

@@ -1,135 +1,233 @@
-# UnifyData
+# UnifyData Python
 
-> **Ferramenta inteligente de conciliação de folha de pagamento com Python e Streamlit.**
+![UnifyData Python: o fechamento no computador e a revisão de nomes no celular](docs/telas/capa.png)
 
-O UnifyData automatiza o cruzamento mensal de consumos de convênios de funcionários (extraídos do Linx AutoSystem) com as listas de RH. Diferente de uma busca simples, ele usa **correspondência aproximada de nomes** para detectar erros de digitação, diferenças de acentuação e inconsistências entre sistemas — ideal para ambientes onde os cadastros não compartilham um código de matrícula em comum.
+**O UnifyData faz o fechamento mensal do consumo dos funcionários** de
+um grupo de empresas. Eles compram fiado nas lojas do próprio grupo, e o
+Linx AutoSystem, o sistema de gestão das lojas, registra cada compra. No
+fim do mês, alguém precisa transformar esses relatórios do Linx em uma
+planilha de desconto em folha para cada empresa. Quando o Linx e as
+planilhas do RH não têm código em comum, a única ligação entre eles é o
+**nome**, e nome se escreve de muitos jeitos: *BAPTISTA* num lugar,
+*BATISTA* no outro; *DEBORA* sem acento; um sobrenome cortado.
 
----
+**O UnifyData liga as pessoas pelo nome** e só pergunta a uma pessoa o
+que não dá para decidir sozinho. Nomes que mudam só no acento, nas
+maiúsculas ou nos espaços são ligados automaticamente; nomes parecidos,
+nomes repetidos e pessoas que não estão no RH viram cartões de revisão; o
+resultado é a planilha de desconto, uma aba por empresa.
 
-## ✨ Funcionalidades
+Feito em Python com Streamlit, roda no próprio computador.
 
-- **Correspondência Aproximada de Nomes** — usa `thefuzz` (`token_sort_ratio`) para identificar nomes similares entre os sistemas, detectando automaticamente erros de digitação e diferenças de formatação
-- **Captura de Dois Valores** — extrai tanto o valor *vencido* quanto o *total da dívida* de cada entrada do relatório Linx, exibindo-os em colunas separadas
-- **Central de Revisão de Divergências** — nomes ambíguos ou não encontrados aparecem em um painel interativo com opções para aprovar, ignorar ou vincular manualmente por CPF
-- **Suporte a Múltiplas Empresas** — processa várias planilhas de RH ao mesmo tempo, gerando uma aba por unidade no Excel
-- **Interface Web Local** — roda como um app Streamlit no navegador, com design customizado em dark mode
-- **Exportação Excel** — gera um relatório `.xlsx` com cabeçalhos coloridos, formatação de moeda, linhas cinzas para funcionários sem consumo e largura automática de colunas
+**Experimente** com dois comandos (abaixo) e clique em **Experimentar com
+arquivos de exemplo**: arquivos fictícios, nada é salvo. Ou experimente
+agora a [versão Web](https://alyssom-fernandes.github.io/UnifyData-Web/?demo=1),
+no navegador, sem instalar nada.
 
----
+[![Testes](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml/badge.svg)](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml)
+![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.57+-ff4b4b?style=flat-square&logo=streamlit&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas&logoColor=white)
+![Tema](https://img.shields.io/badge/tema-claro_e_escuro-0d6e66?style=flat-square)
+![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-blue?style=flat-square)
 
-## 🗂️ Estrutura do Projeto
+Este README também está em [inglês](README.md).
 
-```
-unifydata-python/
-├── unifydata.py             # Aplicação Streamlit principal
-├── requirements.txt         # Dependências Python
-├── Iniciar_UnifyData.bat    # Inicializador Windows com um clique
-└── README.md
-```
+## Em 30 segundos
 
----
+1. Instale e abra (um ou dois minutos na primeira vez):
 
-## 🚀 Como Executar
+   ```bash
+   pip install -r requirements.txt
+   streamlit run unifydata.py
+   ```
 
-### Pré-requisitos
-- Python 3.8+ instalado na máquina
+   No Windows, o `Iniciar_UnifyData.bat` faz os dois com dois cliques.
+2. Clique em **Experimentar com arquivos de exemplo**. Entram três
+   planilhas do RH e dois relatórios do Linx. *DEBORA* (Linx) é ligada a
+   *DÉBORA* (RH) sozinha, e aparecem cinco cartões na etapa
+   *Divergências*: um nome parecido (*Rafael Cunha Baptista* no Linx,
+   *Batista* no RH, 98% parecido) e quatro pessoas que não estão em
+   nenhuma planilha do RH.
+3. Aprove o vínculo, digite CPF e empresa, ou ignore. Quando não sobra
+   nenhum cartão, o fechamento fica pronto, com **Baixar Excel**, **CSV**
+   e **Imprimir ou PDF**.
 
-### Opção A — Windows (um clique)
-Dê um duplo clique em **`Iniciar_UnifyData.bat`**.
+## Telas
 
-Na primeira execução, as dependências serão instaladas automaticamente e o app abrirá no navegador.
+Tiradas com os arquivos de exemplo.
 
-### Opção B — Manual (qualquer sistema operacional)
+| Revisão de nomes, tema escuro | Fechamento pronto, tema claro |
+|---|---|
+| ![Cartões de revisão no tema escuro: um nome parecido e pessoas fora do RH](docs/telas/divergencias-escuro.png) | ![Fechamento pronto no tema claro, com totais por empresa e loja](docs/telas/resultado-claro.png) |
+| **Início, tema escuro** | **Fechamento pronto, tema escuro** |
+| ![Tela inicial, com as quatro etapas na lateral](docs/telas/inicio-escuro.png) | ![Fechamento pronto no tema escuro](docs/telas/resultado-escuro.png) |
+
+| No celular, tema claro | No celular, tema escuro |
+|---|---|
+| <img src="docs/telas/celular-divergencias-claro.png" alt="Revisão de nomes no celular, tema claro" width="260"> | <img src="docs/telas/celular-escuro.png" alt="Fechamento pronto no celular, tema escuro" width="260"> |
+
+## O que sai
+
+![O relatório A4, a planilha do Excel com uma aba por empresa e o CSV](docs/telas/saidas.png)
+
+- **Excel**: uma aba por empresa com **todos os funcionários do RH**; quem
+  não consumiu no mês aparece em cinza, então a aba também serve de lista
+  da folha. Cabeçalho fixo, formato de moeda, CPF formatado, linha de
+  total e nomes de aba sempre aceitos pelo Excel. Cada aba já sai
+  configurada para imprimir em A4, na largura da página.
+- **CSV**: separado por `;` e com vírgula decimal, como o Excel em
+  português abre, com a coluna da empresa.
+- **Relatório** para imprimir ou salvar em PDF: A4, em paisagem quando há
+  três lojas ou mais, cada empresa inteira na página quando cabe, e páginas
+  numeradas. Quem foi ignorado aparece no rodapé, com o valor.
+
+## O que faz
+
+### Leitura
+
+- **Planilhas do RH**: uma por empresa, .xls, .xlsx ou .csv, com colunas
+  de nome e CPF, esteja o cabeçalho na linha que estiver. O nome do
+  arquivo vira o nome da empresa; uma pasta de trabalho com várias abas
+  vira *Empresa - Aba*, a menos que a aba tenha o nome padrão do Excel
+  (Plan1, Planilha1...).
+- **Relatórios do Linx**: o CSV *Pendências por responsável*, um por loja.
+  Dois valores por pessoa e loja, *vencido* e *total*, e o período de
+  vencimentos.
+
+### Cruzamento, do mais seguro ao mais cuidadoso
+
+1. **Mesmo nome depois de tirar acentos, maiúsculas e espaços**, e só uma
+   pessoa no RH com ele: ligado automaticamente (a tela diz quantos).
+2. **Nome parecido** (85% ou mais com `token_sort_ratio`, que também pega
+   palavras fora de ordem): um cartão sugere o vínculo. Aprove, ou diga
+   que é outra pessoa digitando o CPF dela; o cartão mostra de quem é o
+   CPF antes de confirmar.
+3. **Nome repetido no RH** (homônimos, ou a mesma pessoa em duas
+   planilhas): o cartão pergunta de qual linha descontar, para ninguém ser
+   cobrado duas vezes. Nunca é escolhido sozinho.
+4. **Fora do RH**: digite o CPF. Se for de alguém do RH, o consumo vai
+   para essa pessoa; se não for, o registro é criado na empresa escolhida
+   (uma que já existe ou uma nova). Ou ignore.
+
+Todo cartão pode ser ignorado; quem foi ignorado aparece, com o valor, no
+resultado e no relatório.
+
+### Celular e temas
+
+- Tema claro e escuro, seguindo o sistema, com troca pelo menu ⋮. As
+  partes próprias do app acompanham o tema mesmo quando ele muda sem
+  recarregar.
+- Lateral com as quatro etapas e a situação de cada uma, e a assinatura
+  AFN Systems; no celular, cartões e botões ocupam a largura toda.
+
+## Privacidade e segurança
+
+- **Roda no seu computador, só para o seu computador.** O servidor
+  atende apenas em `localhost`, então outras máquinas da rede não
+  conseguem abrir o app. Os arquivos ficam na memória da sua sessão do
+  Streamlit e não são gravados em lugar nenhum; fechar a sessão descarta
+  tudo. As estatísticas de uso do Streamlit estão desligadas.
+- **O modo de exemplo** carrega os arquivos fictícios de `exemplos/`; não
+  mexe em mais nada.
+- **Texto vindo dos arquivos nunca é confiável**: nomes e nomes de arquivo são
+  escapados antes de virar HTML, e células do CSV que começam com `=`,
+  `+`, `-` ou `@` ganham um apóstrofo na frente, para a planilha não
+  executar uma fórmula escondida num nome.
+
+## Como é feito
+
+| Parte | Tecnologia |
+|---|---|
+| Interface | Streamlit 1.57, com a configuração de tema e um pouco de CSS |
+| Dados | pandas para ler e consolidar; xlrd para .xls antigo |
+| Nomes | thefuzz (`token_sort_ratio`) para a semelhança |
+| Escrita | openpyxl para o .xlsx; o CSV e o relatório são feitos pelo app |
+| Fontes | Instrument Sans na interface; JetBrains Mono em rótulos e na assinatura |
+| Testes | `unittest`, a cada push (GitHub Actions) |
+
+Algumas decisões por trás:
+
+- **As regras ficam separadas da tela.** O `nucleo.py` tem funções puras
+  para ler, cruzar, consolidar e escrever o Excel e o CSV; o
+  `unifydata.py` só desenha a tela e chama essas funções. Os testes rodam
+  as regras com os mesmos arquivos de exemplo, sem o Streamlit.
+- **Automático só quando não há ambiguidade.** O vínculo sozinho só
+  acontece quando o nome é o mesmo depois de tirar acentos, maiúsculas e
+  espaços, e o RH tem uma única grafia dele; o resto espera um clique.
+- **Homônimos protegidos.** Quando um nome aparece mais de uma vez no RH,
+  o consumo vai só para a linha escolhida, e as outras ficam zeradas. O
+  consumo que um CPF já ligou a uma pessoa fica com ela, seja qual for a
+  escolha feita depois para o nome.
+- **Cliques seguros.** Cada ação é um callback que roda antes do próximo
+  desenho da tela, então um clique duplo num botão que já fez o trabalho
+  não faz nada.
+
+## Limitações conhecidas
+
+- Depende do layout do CSV *Pendências por responsável* do Linx.
+- Cruzar pelo nome precisa de uma pessoa para confirmar os casos em
+  dúvida; é proposital.
+- Nada fica guardado entre um fechamento e outro: as planilhas do RH são
+  lidas de novo a cada mês. (A
+  [versão Web](https://github.com/alyssom-fernandes/UnifyData-Web) guarda
+  uma base e cruza pela matrícula.)
+- Precisa de Python no computador; não há versão hospedada.
+- As fontes vêm do Google Fonts; sem internet, entram as fontes do
+  sistema.
+- Algumas partes são do próprio Streamlit: o menu ⋮ está em inglês, e o
+  *Print* dele imprime a página inteira (o botão **Imprimir ou PDF**
+  imprime só o relatório).
+- Testado no Chrome e no Edge, no computador e na largura de celular.
+
+## Rodando
+
+Python 3.10 ou mais novo (os testes rodam no 3.12 no CI; o app foi
+usado com o 3.14):
 
 ```bash
-# Instalar dependências
 pip install -r requirements.txt
-
-# Iniciar o app
 streamlit run unifydata.py
 ```
 
-O app abrirá em `http://localhost:8501`.
+O app abre em `http://localhost:8501`; `http://localhost:8501/?demo=1`
+já abre com os arquivos de exemplo. No Windows, o `Iniciar_UnifyData.bat`
+instala o que faltar na primeira vez, cria um arquivo de credenciais vazio
+do Streamlit (para ele não pedir e-mail) e abre o app.
 
----
+Para rodar os testes:
 
-## 📖 Como Usar
-
-1. **Suba os Arquivos de RH** — arraste as planilhas de funcionários da empresa (`.xlsx`, `.xls` ou `.csv`). O nome do arquivo (ex: `Empregados Posto Rosário.xls`) é usado como nome da unidade.
-2. **Suba os Relatórios do Linx** — arraste os arquivos CSV de consumo mensal exportados do Linx AutoSystem.
-3. **Clique em "Processar e Unificar Dados"** — o app cruza as duas fontes e detecta divergências.
-4. **Revise as Divergências** — para cada item sinalizado, escolha:
-   - ✅ **Aprovar** um vínculo de nome sugerido
-   - 🔗 **Vincular por CPF** para correção manual
-   - 🚫 **Ignorar** para excluir o registro do relatório
-5. **Baixe** o relatório consolidado em `.xlsx`.
-
----
-
-## 📊 Formato do Relatório
-
-Cada unidade ganha sua própria aba. Colunas por aba:
-
-| Funcionário | CPF | Vencido [Origem] | Total [Origem] | ... | Total Desconto |
-|---|---|---|---|---|---|
-| FULANO DE TAL | 000.000.000-00 | R$ 0,00 | R$ 150,00 | ... | R$ 150,00 |
-
-- Cabeçalho: fundo vinho escuro, texto branco em negrito
-- Funcionários com consumo zero: exibidos em cinza
-- Rodapé: total geral em negrito
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-| Tecnologia | Função |
-|---|---|
-| [Python 3](https://python.org) | Linguagem principal |
-| [Streamlit](https://streamlit.io) | Framework de interface web |
-| [pandas](https://pandas.pydata.org) | Processamento e pivotamento de dados |
-| [thefuzz](https://github.com/seatgeek/thefuzz) | Correspondência aproximada de nomes |
-| [openpyxl](https://openpyxl.readthedocs.io) | Geração do relatório Excel |
-
----
-
-## 📋 Dependências
-
-```
-streamlit
-pandas
-openpyxl
-thefuzz[speedup]
-python-Levenshtein
-```
-
-Instale com:
 ```bash
-pip install -r requirements.txt
+python -m unittest discover -s tests
 ```
 
----
+## Estrutura do projeto
 
-## 🔄 Diferença em Relação à Versão Web
+```
+unifydata.py            o app Streamlit: etapas, cartões de revisão, resultado e exportações
+nucleo.py               regras puras: leitura, cruzamento de nomes, consolidação, Excel, CSV
+requirements.txt        dependências
+Iniciar_UnifyData.bat   atalho para Windows
+.streamlit/config.toml  temas claro e escuro, fontes, barra de ferramentas, telemetria desligada
+assets/favicon.png      a marca do UnifyData
+tests/                  testes das regras, com os arquivos de exemplo
+exemplos/               arquivos fictícios nos formatos do Linx e do RH
+.github/workflows/      roda os testes a cada push
+docs/telas/             imagens deste README e da prévia para redes (og.png)
+```
+
+## Comparando com a versão Web
 
 | | UnifyData Web | UnifyData Python |
 |---|---|---|
-| **Instalação** | Nenhuma (abrir HTML) | Python obrigatório |
-| **Método de cruzamento** | Código de matrícula (exato) | Correspondência aproximada de nomes |
-| **Persistência** | `localStorage` (permanente) | Apenas na sessão (re-upload todo mês) |
-| **Ideal para** | Fechamento mensal rápido | Sistemas sem código de matrícula em comum |
+| **Roda** | No navegador, sem instalar nada | No computador, com Python |
+| **Entradas** | PDF de Contas a Receber do Linx, planilhas do RH, CSVs do Linx | Planilhas do RH e CSVs do Linx |
+| **Cruzamento** | Pela matrícula (exato) | Pelo nome (aproximado, com revisão) |
+| **Homônimos** | Não atrapalham, a matrícula separa | Um cartão pergunta de qual linha descontar |
+| **Dados dos funcionários** | Uma base salva no navegador | Planilhas do RH lidas todo mês |
+| **Excel** | Quem teve consumo; totais com fórmulas `SOMA` | Todos do RH (sem consumo em cinza) |
+| **Melhor para** | Linx e RH com a matrícula em comum | Sistemas sem código em comum |
 
----
+## Licença
 
-## 🤝 Contribuições
-
-Sinta-se à vontade para abrir issues ou pull requests. Contribuições que ampliem a compatibilidade com outros formatos de CSV ou adicionem novas estratégias de cruzamento são especialmente bem-vindas.
-
----
-
-## 📄 Licença
-
-Licença MIT — livre para usar, modificar e distribuir.
-
----
-
-*Desenvolvido por AFN Systems · 2026*
+[MIT](LICENSE). Feito por [Alyssom Fernandes](https://github.com/alyssom-fernandes), AFN Systems.

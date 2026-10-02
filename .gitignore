@@ -1,0 +1,28 @@
+# Arquivos de dados: podem conter nomes e CPFs reais
+Docs Teste/
+*.xls
+*.xlsx
+*.xlsm
+*.ods
+*.pdf
+*.csv
+*.txt
+!requirements.txt
+
+# Arquivos de exemplo (100% fictícios) entram no repositório
+!exemplos/*.csv
+!exemplos/*.xlsx
+!exemplos/*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
+# Normaliza fim de linha (LF no repositório, mesmo vindo do Windows)
 * text=auto
+*.bat text eol=crlf
+*.png binary
+*.xlsx binary
+*.xls binary
+*.csv binary
