@@ -84,6 +84,26 @@ class Cruzamento(unittest.TestCase):
         self.assertEqual(tipos, ['Nome Semelhante'] + ['Não Encontrado'] * 4)
         self.assertEqual(divergencias[0]['HR_Nome'], 'RAFAEL CUNHA BATISTA')
 
+    def test_conferencia_total_do_linx_menos_ignorado_e_o_total_da_planilha(self):
+        # O fluxo da demonstração: aprova o nome parecido e ignora as quatro pessoas fora do RH
+        hr, _ = N.parse_hr_files(rh_exemplo())
+        linx, _, periodos = N.parse_linx_files(linx_exemplo())
+        totais = N.totais_por_loja(linx)
+        divergencias, _ = N.encontrar_divergencias(hr, linx)
+        ignorados = []
+        for d in divergencias:
+            if d['Tipo'] == 'Nome Semelhante':
+                N.renomear(linx, d['Linx_Nome'], d['HR_Nome'])
+            else:
+                ignorados.append({'nome': d['Linx_Nome'], 'valor': d['Valor']})
+                linx = linx[~N.pelo_nome(linx, d['Linx_Nome'])]
+        total = float(N.consolidar(hr, linx, list(totais), {})['Total Desconto'].sum())
+        c = N.conferencia(totais, ignorados)
+        self.assertEqual([o for o, _ in c['por_origem']], ['LOJA', 'RESTAURANTE'])
+        self.assertEqual(c['a_descontar'], round(total, 2), 'total do Linx − ignorado = total da planilha')
+        self.assertEqual(N.mes_do_periodo(periodos), 'setembro de 2026')
+        self.assertEqual(N.mes_do_periodo(['16/09/2026 a 15/10/2026']), '16/09/2026 a 15/10/2026')
+
     def test_acento_ambiguo_nao_liga_sozinho(self):
         hr = pd.DataFrame([{'Nome': 'JOSÉ SILVA', 'CPF': '1', 'Empresa': 'A'}, {'Nome': 'JOSE SILVA', 'CPF': '2', 'Empresa': 'B'}])
         linx = pd.DataFrame([{'Nome': 'JOSÈ SILVA', 'Vencido': 0.0, 'Total': 5.0, 'Origem': 'LOJA'}])

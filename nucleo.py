@@ -345,6 +345,34 @@ def consolidar(hr_df, linx_df, origens, escolhas):
     return merged.drop(columns='_linha')
 
 
+def totais_por_loja(linx_df):
+    """Total de cada relatório do Linx (o "Total geral" dele), guardado antes de qualquer divergência ser ignorada."""
+    if linx_df is None or linx_df.empty:
+        return {}
+    return {o: round(float(v), 2) for o, v in linx_df.groupby('Origem', sort=False)['Total'].sum().items()}
+
+
+def conferencia(totais_linx, ignorados):
+    """
+    A conta do fechamento como numa fita de calculadora: o total de cada loja no Linx, a soma, o que foi
+    ignorado e o que vai para a folha (que precisa bater com o total da planilha).
+    """
+    consumo = round(sum(totais_linx.values()), 2)
+    ignorado = round(sum(x['valor'] for x in ignorados), 2)
+    return {'por_origem': list(totais_linx.items()), 'consumo': consumo, 'ignorado': ignorado,
+            'a_descontar': round(consumo - ignorado, 2)}
+
+
+def mes_do_periodo(periodos):
+    """["01/09/2026 a 30/09/2026"] → "setembro de 2026"; vencimentos em mais de um mês ficam como vieram."""
+    meses = set(re.findall(r'\d{2}/(\d{2})/(\d{4})', ' '.join(periodos or [])))
+    if len(meses) != 1:
+        return '; '.join(periodos or [])
+    mes, ano = next(iter(meses))
+    nomes = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+    return f'{nomes[int(mes) - 1]} de {ano}'
+
+
 # ──────────────────────────────────────────────
 #  Exportação
 # ──────────────────────────────────────────────
@@ -405,7 +433,7 @@ def gerar_excel(merged_df, origem_cols, demo=False):
     wb = Workbook()
     wb.remove(wb.active)
 
-    header_fill = PatternFill(start_color='58111A', end_color='58111A', fill_type='solid')
+    header_fill = PatternFill(start_color='0D6E66', end_color='0D6E66', fill_type='solid')  # verde-azulado da marca, como na tela
     header_font = Font(color='FFFFFF', bold=True)
     gray_font   = Font(color='808080')
     center      = Alignment(horizontal='center', vertical='center')

@@ -11,9 +11,9 @@ import pandas as pd
 import streamlit as st
 
 from nucleo import (
-    AVISO_DEMO, brl, consolidar, divergencia_repetido, empresa_do_arquivo, encontrar_divergencias, fixar_linha, formatar_cpf,
-    gerar_csv, gerar_excel, lista_por_extenso, nome_do_arquivo, nome_exibicao, normalizar, ordenar, parse_hr_files,
-    parse_linx_files, pelo_nome, renomear, so_digitos,
+    AVISO_DEMO, brl, conferencia, consolidar, divergencia_repetido, empresa_do_arquivo, encontrar_divergencias, fixar_linha,
+    formatar_cpf, gerar_csv, gerar_excel, lista_por_extenso, mes_do_periodo, nome_do_arquivo, nome_exibicao, normalizar, ordenar,
+    parse_hr_files, parse_linx_files, pelo_nome, renomear, so_digitos, totais_por_loja,
 )
 
 PASTA = Path(__file__).parent
@@ -44,6 +44,8 @@ st.markdown("""
         --ud-azul-fundo: light-dark(rgba(54, 81, 212, .09), rgba(142, 162, 255, .14));
         --ud-sobre-tinta: light-dark(#ffffff, #141416);
         --ud-fundo: light-dark(#f6f6f7, #141416);
+        --ud-papel: light-dark(#ebebee, #232327);
+        --ud-borda-campo: light-dark(#8e8e99, #6b6b75);
         --pf-afn: light-dark(#6b1f2a, #c44a5a);
         --pf-sys: light-dark(#505050, rgba(255, 255, 255, .32));
     }
@@ -51,6 +53,8 @@ st.markdown("""
     /* O topo tem a cor do fundo: o conteúdo rolado some por baixo dele em vez de passar sob os botões */
     [data-testid="stHeader"] { background: var(--ud-fundo); }
     [data-testid="stMainBlockContainer"] { max-width: 820px; padding-top: 4rem; padding-bottom: 2rem; }
+    /* Monitor largo: a coluna cresce, e a tabela do resultado cabe ao lado da fita sem apertar */
+    @media (min-width: 1360px) { [data-testid="stMainBlockContainer"] { max-width: 1000px; } }
     /* Texto do botão principal com o contraste certo nos dois temas */
     [data-testid^="stBaseButton-primary"]:not(:disabled),
     [data-testid^="stBaseButton-primary"]:not(:disabled) p,
@@ -66,8 +70,11 @@ st.markdown("""
     .ud-titulo { font-size: 40px; font-weight: 650; letter-spacing: -.035em; line-height: 1.04; margin: 0; }
     .ud-titulo span { color: var(--ud-texto-3); }
     .ud-sub { color: var(--ud-texto-2); font-size: 16px; line-height: 1.55; margin: 14px 0 6px; max-width: 62ch; }
-    .ud-rotulo { font: 700 10.5px/1 'JetBrains Mono', monospace; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ud-texto-3); margin: 2px 0 8px; }
     .ud-etapa { font-size: 20px; font-weight: 650; letter-spacing: -.02em; line-height: 1.25; display: flex; align-items: center; gap: 10px; }
+    /* O número da etapa entra no título, no mesmo círculo da lateral */
+    .ud-num { width: 28px; height: 28px; display: inline-grid; place-items: center; flex: none; margin-right: 2px; border-radius: 50%;
+              border: 1px solid var(--ud-borda-2); font: 700 12px/1 'JetBrains Mono', monospace; letter-spacing: 0; color: var(--ud-texto-2); }
+    .ud-oculto { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .ud-contador { font: 700 12.5px/1.2 'JetBrains Mono', monospace; padding: 2px 8px; border-radius: 999px; background: var(--ud-atencao-fundo); color: var(--ud-atencao); }
     .ud-texto { color: var(--ud-texto-2); font-size: 14.5px; line-height: 1.55; margin: 6px 0 2px; max-width: 66ch; }
     .ud-faixa { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; padding: 9px 14px; border-radius: 10px;
@@ -79,16 +86,34 @@ st.markdown("""
     .ud-selo.vermelho { background: var(--ud-erro-fundo); color: var(--ud-erro); }
     .ud-selo.azul { background: var(--ud-azul-fundo); color: var(--ud-azul); }
     .ud-nome { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; margin: 8px 0 0; overflow-wrap: anywhere; }
-    .ud-meta { color: var(--ud-texto-2); font-size: 13.5px; margin: 2px 0 8px; }
+    .ud-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--ud-texto-2); font-size: 13.5px; margin: 2px 0 8px; }
     .ud-valor { font-size: 15.5px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .ud-numeros { display: grid; grid-template-columns: 1fr 1fr 1.4fr; border: 1px solid var(--ud-borda); border-radius: 12px; overflow: hidden; margin: 16px 0 4px; }
-    .ud-numeros > div { padding: 14px 18px; min-width: 0; }
-    .ud-numeros > div + div { border-left: 1px solid var(--ud-borda); }
-    .ud-numeros span { display: block; font-size: 13px; color: var(--ud-texto-2); }
-    .ud-numeros b { display: block; margin-top: 2px; font-size: 24px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .ud-numeros .destaque { background: var(--ud-acento-fundo); }
-    .ud-numeros .destaque span { color: var(--ud-acento); font-weight: 600; }
-    .ud-numeros .destaque b { font-size: 28px; }
+    /* Fita de conferência ao lado da tabela; empilhada quando não cabe */
+    .ud-resultado-caixa { container: resultado / inline-size; margin: 16px 0 18px; }
+    .ud-resultado { display: grid; gap: 22px; }
+    @container resultado (min-width: 860px) { .ud-resultado { grid-template-columns: 264px minmax(0, 1fr); gap: 26px; align-items: start; } }
+    /* A conta do fechamento como numa calculadora de fita: papel, números alinhados e a ponta serrilhada */
+    .ud-fita { --dente: 6px; padding: 16px 18px calc(16px + var(--dente)); border-radius: 10px 10px 0 0; background: var(--ud-papel);
+               color: var(--ud-texto-2); font: 500 13px/1.5 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+               -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--dente)) 100%;
+                       mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--dente)) 100%; }
+    .ud-fita .ud-fita-titulo { margin: 0; color: light-dark(#18181b, #ededef); font: 600 14px/1.3 'Instrument Sans', sans-serif; }
+    .ud-fita .ud-fita-mes { margin: 1px 0 0; color: var(--ud-texto-3); font: 400 12.5px/1.4 'Instrument Sans', sans-serif; }
+    .ud-fita dl { margin: 12px 0 0; }
+    .ud-fita .ud-fita-linha { display: flex; align-items: baseline; gap: 4px; padding: 2px 0; }
+    .ud-fita .ud-fita-linha dt { display: flex; flex: 1; min-width: 0; align-items: baseline; margin: 0; font: 500 13.5px/1.5 'Instrument Sans', sans-serif; }
+    .ud-fita .ud-fita-linha dt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ud-fita .ud-fita-linha dt::after { content: ''; flex: 1; min-width: 10px; margin: 0 6px; border-bottom: 1px dotted var(--ud-borda-campo); transform: translateY(-4px); }
+    .ud-fita .ud-fita-linha dd { margin: 0; color: light-dark(#18181b, #ededef); white-space: nowrap; }
+    .ud-fita-op { display: inline-block; width: 2ch; font-style: normal; text-align: right; color: var(--ud-texto-3); }
+    .ud-fita .ud-fita-soma { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--ud-borda-2); }
+    .ud-fita .ud-fita-soma dt span, .ud-fita .ud-fita-soma dd { font-weight: 700; }
+    .ud-fita .ud-fita-menos dd { color: var(--ud-atencao); }
+    .ud-fita .ud-fita-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px;
+                              margin-top: 10px; padding-top: 10px; border-top: 3px double var(--ud-texto-3); color: var(--ud-acento); }
+    .ud-fita .ud-fita-total dt { margin: 0; font: 600 14px/1.3 'Instrument Sans', sans-serif; }
+    .ud-fita .ud-fita-total dd { margin: 0; font: 700 23px/1.15 'JetBrains Mono', monospace; letter-spacing: -.03em; white-space: nowrap; }
+    .ud-fita .ud-fita-pe { margin: 12px 0 0; color: var(--ud-texto-3); font: 400 12.5px/1.4 'Instrument Sans', sans-serif; }
     .ud-tabela { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0; border: 0 !important; }
     .ud-tabela th, .ud-tabela td { border: 0 !important; background: none !important; }
     .ud-tabela th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--ud-texto-2); padding: 8px 10px; border-bottom: 1px solid var(--ud-borda-2) !important; white-space: nowrap; }
@@ -149,8 +174,6 @@ st.markdown("""
         .ud-titulo { font-size: 30px; }
         .ud-sub { font-size: 15px; }
         .ud-tabela .origem { display: none; }
-        .ud-numeros { grid-template-columns: 1fr 1fr; }
-        .ud-numeros .destaque { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--ud-borda); }
         .ud-valor { text-align: left; }
     }
     @media (min-width: 641px) { .page-footer--centro { display: none; } }
@@ -176,6 +199,7 @@ defaults = {
     'divergences': [],
     'origens': [],
     'periodos': [],
+    'totais_linx': {},
     'avisos': [],
     'ignorados': [],
     'ligados_auto': 0,
@@ -209,6 +233,7 @@ def processar(hr_files, linx_files):
     divergencias, ligados = encontrar_divergencias(hr_df, linx_df)
     st.session_state.update(
         hr_df=hr_df, linx_df=linx_df, origens=list(dict.fromkeys(linx_df['Origem'])), periodos=periodos,
+        totais_linx=totais_por_loja(linx_df),  # antes de qualquer divergência ser ignorada: é o que a fita confere
         divergences=divergencias, avisos=avisos_rh + avisos_linx, ligados_auto=ligados, erro_envio=None, processing_done=True,
     )
 
@@ -354,8 +379,10 @@ def confirmar_cpf(div_id):
 #  Pedaços de tela
 # ──────────────────────────────────────────────
 def cabecalho_etapa(numero, titulo, texto=None, extra=''):
+    # O número da etapa entra no título, no mesmo círculo da lateral
     st.markdown(
-        f'<div class="ud-rotulo">Etapa {numero}</div><div class="ud-etapa">{titulo}{extra}</div>'
+        f'<div class="ud-etapa"><span class="ud-num" aria-hidden="true">{numero}</span>'
+        f'<span class="ud-oculto">Etapa {numero}: </span>{titulo}{extra}</div>'
         + (f'<div class="ud-texto">{texto}</div>' if texto else ''),
         unsafe_allow_html=True,
     )
@@ -392,7 +419,7 @@ def campos_cpf_empresa(i, empresas, rotulo_cpf):
 #  Interface: abertura
 # ──────────────────────────────────────────────
 if st.session_state.demo:
-    st.markdown('<div class="ud-faixa"><span><b>Demonstração</b> · arquivos fictícios da pasta exemplos/, nada é salvo.</span></div>',
+    st.markdown('<div class="ud-faixa"><span><b>Demonstração</b> com os arquivos fictícios da pasta exemplos/: nada é salvo.</span></div>',
                 unsafe_allow_html=True)
     st.button('Sair da demonstração', type='tertiary', icon=':material/close:', on_click=sair_da_demonstracao)
 
@@ -467,7 +494,8 @@ if st.session_state.processing_done:
                 with st.container(border=True, key=f'div_{i}'):
                     if div['Tipo'] == 'Nome Semelhante':
                         cabecalho_cartao('Nome parecido', 'laranja', div['Linx_Nome'],
-                                         f'No RH: {escape(nome_exibicao(div["HR_Nome"]))} · {div["Score"]}% parecido · {escape(div["Origem"])}',
+                                         f'<span>No RH: {escape(nome_exibicao(div["HR_Nome"]))}</span><span>{div["Score"]}% parecido</span>'
+                                         f'<span>{escape(div["Origem"])}</span>',
                                          div['Valor'])
                         b1, b2, _ = st.columns([1.3, 1, 1.6])
                         b1.button('Aprovar vínculo', key=f'apv_{i}', type='primary', width='stretch', on_click=aprovar, args=(i,))
@@ -480,7 +508,7 @@ if st.session_state.processing_done:
 
                     elif div['Tipo'] == 'Repetido':
                         cabecalho_cartao(f'Em {len(div["Opcoes"])} linhas do RH', 'azul', div['Linx_Nome'],
-                                         f'O mesmo nome aparece mais de uma vez nas planilhas do RH · {escape(div["Origem"])}',
+                                         f'<span>O mesmo nome aparece mais de uma vez nas planilhas do RH</span><span>{escape(div["Origem"])}</span>',
                                          div['Valor'])
                         rotulos = dict(div['Opcoes'])
                         st.radio('De quem é esse consumo?', list(rotulos), key=f'linha_{i}', index=None,
@@ -491,7 +519,7 @@ if st.session_state.processing_done:
 
                     else:
                         cabecalho_cartao('Fora do RH', 'vermelho', div['Linx_Nome'],
-                                         f'Não aparece em nenhuma planilha do RH · {escape(div["Origem"])}', div['Valor'])
+                                         f'<span>Não aparece em nenhuma planilha do RH</span><span>{escape(div["Origem"])}</span>', div['Valor'])
                         campos_cpf_empresa(i, empresas, 'CPF')
                         b1, b2, _ = st.columns([1.3, 1, 1.6])
                         b1.button('Criar registro', key=f'create_nf_{i}', type='primary', width='stretch', on_click=confirmar_cpf, args=(i,))
@@ -531,12 +559,24 @@ if st.session_state.processing_done:
                                 f'Consumos de {escape(lista_por_extenso(origens))}{f", vencimentos de {escape(periodo)}" if periodo else ""}, '
                                 'cruzados com as planilhas do RH.')
 
-                st.markdown(f"""
-                <div class="ud-numeros">
-                  <div><span>Com consumo</span><b>{len(com_consumo)}</b></div>
-                  <div><span>Empresas</span><b>{len(grupos)}</b></div>
-                  <div class="destaque"><span>Total a descontar</span><b>{brl(total)}</b></div>
-                </div>""", unsafe_allow_html=True)
+                # Fita de conferência: o total de cada loja no Linx (+), a soma (=), o ignorado (−) e o que vai para a folha
+                conf = conferencia(st.session_state.totais_linx, ign)
+                numero = lambda v: brl(v)[3:]  # na fita, só o número; o R$ fica no total
+                linha_fita = lambda rotulo, valor, op, classe='': (
+                    f'<div class="ud-fita-linha{classe}"><dt><span>{escape(rotulo)}</span></dt>'
+                    f'<dd>{valor}<i class="ud-fita-op" aria-hidden="true">{op}</i></dd></div>')
+                mes = mes_do_periodo(st.session_state.periodos)
+                n_ign = len(ign)
+                fita = (
+                    '<section class="ud-fita" aria-label="Conferência com o Linx"><p class="ud-fita-titulo">Conferência com o Linx</p>'
+                    + (f'<p class="ud-fita-mes">Vencimentos de {escape(mes)}</p>' if mes else '') + '<dl>'
+                    + ''.join(linha_fita(o, numero(v), '+') for o, v in conf['por_origem'])
+                    + linha_fita('Total no Linx', numero(conf['consumo']), '=', ' ud-fita-soma')
+                    + linha_fita(f'Ignorado ({n_ign} {"pessoa" if n_ign == 1 else "pessoas"})' if n_ign else 'Ignorado',
+                                 f'−{numero(conf["ignorado"])}', '', ' ud-fita-menos')
+                    + f'<div class="ud-fita-total"><dt>A descontar</dt><dd>{brl(total)}</dd></div></dl>'
+                    + f'<p class="ud-fita-pe">{len(com_consumo)} {"funcionário" if len(com_consumo) == 1 else "funcionários"} com consumo, '
+                      f'em {len(grupos)} {"empresa" if len(grupos) == 1 else "empresas"}</p></section>')
 
                 linhas = ''.join(
                     f'<tr><td>{escape(g.Empresa)}</td><td class="num">{g.Pessoas}</td>'
@@ -545,6 +585,7 @@ if st.session_state.processing_done:
                     for g in grupos.itertuples())
                 totais_loja = [brl(grupos[f'o_{k}'].sum()) for k in range(len(origens))]
                 st.markdown(f"""
+                <div class="ud-resultado-caixa"><div class="ud-resultado">{fita}
                 <div class="ud-rolagem"><table class="ud-tabela{' varias' if len(origens) >= 4 else ''}">
                   <thead><tr><th>Empresa</th><th class="num">Pessoas</th>
                     {''.join(f'<th class="num origem">{escape(o)}</th>' for o in origens)}<th class="num">Total</th></tr></thead>
@@ -552,7 +593,7 @@ if st.session_state.processing_done:
                   <tfoot><tr><td>Total</td><td class="num">{len(com_consumo)}</td>
                     {''.join(f'<td class="num origem">{t}</td>' for t in totais_loja)}
                     <td class="num">{brl(total)}</td></tr></tfoot>
-                </table></div>""", unsafe_allow_html=True)
+                </table></div></div></div>""", unsafe_allow_html=True)
 
                 sem_consumo = len(merged) - len(com_consumo)
                 notas = [nota_ligados]
@@ -581,14 +622,16 @@ if st.session_state.processing_done:
 
                 hoje = date.today().strftime('%d/%m/%Y')
                 relatorio = (
-                    f'<div class="cab"><div><h1>Fechamento de consumo</h1><p>{escape(" · ".join(origens))}'
-                    f'{f" · Vencimentos de {escape(periodo)}" if periodo else ""}</p></div>'
+                    f'<div class="cab"><div><h1>Fechamento de consumo</h1><p>{escape(lista_por_extenso(origens))}'
+                    f'{f", vencimentos de {escape(periodo)}" if periodo else ""}</p></div>'
                     f'<div class="meta">UnifyData<br>{hoje}</div></div>'
                     # Demonstração: aviso no topo e marca-d'água em todas as páginas
                     + (f'<p class="demo">{AVISO_DEMO}</p><div class="marca" aria-hidden="true">Demonstração</div>'
                        if st.session_state.demo else '')
                     + f'<div class="resumo"><div><span>Com consumo</span><b>{len(com_consumo)}</b></div>'
-                    f'<div><span>Empresas</span><b>{len(grupos)}</b></div><div><span>Total a descontar</span><b>{brl(total)}</b></div></div>'
+                    f'<div><span>Empresas</span><b>{len(grupos)}</b></div><div><span>Total no Linx</span><b>{brl(conf["consumo"])}</b></div>'
+                    f'<div><span>Ignorado</span><b>{brl(conf["ignorado"])}</b></div>'
+                    f'<div class="total"><span>Total a descontar</span><b>{brl(total)}</b></div></div>'
                     + ''.join(f'<section><h2>{escape(emp)}</h2>{tabela_relatorio(merged[merged["Empresa"] == emp])}</section>'
                               for emp in grupos['Empresa'])
                     + f'<div class="rodape"><span>Gerado pelo UnifyData em {hoje}. {escape(nota_ignorados) or "Sem divergências ignoradas."}</span>'
@@ -625,7 +668,8 @@ if st.session_state.processing_done:
   /* A empresa que cabe numa página não se divide; o total aparece uma vez só, no fim da tabela */
   section {{ margin-bottom: 14pt; break-inside: avoid; }} h2 {{ font-size: 11pt; margin: 0 0 5pt; break-after: avoid; }} tr {{ break-inside: avoid; }}
   table {{ width: 100%; border-collapse: collapse; }} tfoot {{ display: table-row-group; }}
-  th {{ background: #58111a; color: #fff; text-align: left; vertical-align: bottom; padding: 4pt 5pt; font-size: 8.5pt; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  .resumo .total b {{ color: #0d6e66; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  th {{ background: #0d6e66; color: #fff; text-align: left; vertical-align: bottom; padding: 4pt 5pt; font-size: 8.5pt; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
   th.loja {{ text-align: center; padding-bottom: 2pt; border-bottom: .5pt solid rgba(255,255,255,.35); border-left: .5pt solid rgba(255,255,255,.2); }}
   th.sub {{ padding-top: 2pt; font-size: 8pt; font-weight: 500; }} th.pessoa {{ width: 30%; }} th.cpf {{ width: 27mm; }}
   th.ini {{ border-left: .5pt solid rgba(255,255,255,.2); }} td.ini {{ border-left: .5pt solid #e2e2e2; }}
@@ -697,7 +741,7 @@ n_rh = len(ss.get(f'rh_{rodada}') or [])
 n_linx = len(ss.get(f'linx_{rodada}') or [])
 if feito:
     n_pessoas, n_empresas = len(ss.hr_df), ss.hr_df['Empresa'].nunique()
-    resumo_rh = (f"{n_pessoas} {'pessoa' if n_pessoas == 1 else 'pessoas'} · "
+    resumo_rh = (f"{n_pessoas} {'pessoa' if n_pessoas == 1 else 'pessoas'} em "
                  f"{n_empresas} {'empresa' if n_empresas == 1 else 'empresas'}")
     resumo_linx = f"{len(ss.origens)} {'relatório' if len(ss.origens) == 1 else 'relatórios'}"
     n_div = len(ss.divergences)
@@ -715,7 +759,6 @@ atual = 'rh' if not feito and not n_rh else 'linx' if not feito else 'div' if n_
 with st.sidebar:
     st.markdown(
         f'<div class="ud-marca">{MARCA}<span>UnifyData</span></div>'
-        '<div class="ud-rotulo">Fechamento</div>'
         '<ol class="ud-passos">'
         + passo(1, 'Planilhas do RH', resumo_rh, 'feito' if feito else '', atual == 'rh')
         + passo(2, 'Consumos do Linx', resumo_linx, 'feito' if feito else '', atual == 'linx')
