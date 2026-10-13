@@ -35,6 +35,8 @@ Este README também está em [inglês](README.md).
 
 ## Em 30 segundos
 
+![A revisão de nomes no modo de exemplo: um nome 98% parecido é aprovado, as pessoas que não estão no RH são ignoradas e o fechamento fica pronto, com a fita de conferência](docs/telas/revisao.gif)
+
 1. Instale e abra (um ou dois minutos na primeira vez):
 
    ```bash
@@ -219,7 +221,7 @@ static/fonts/           Instrument Sans e JetBrains Mono (woff2), com as licenç
 tests/                  testes das regras, com os arquivos de exemplo
 exemplos/               arquivos fictícios nos formatos do Linx e do RH
 .github/workflows/      roda os testes a cada push
-docs/telas/             imagens deste README e da prévia para redes (og.png)
+docs/telas/             imagens deste README (com o revisao.gif) e da prévia para redes (og.png)
 ```
 
 ## Comparando com a versão Web

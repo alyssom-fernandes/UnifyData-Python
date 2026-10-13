@@ -36,6 +36,8 @@ This README is also available in [Portuguese](README.pt-BR.md).
 
 ## In 30 seconds
 
+![The name review in the sample mode: a 98% similar name is approved, the people who are not in HR are ignored, and the closing is ready with the reconciliation tape](docs/telas/revisao.gif)
+
 1. Install and start it (a minute or two the first time):
 
    ```bash
@@ -222,7 +224,7 @@ static/fonts/           Instrument Sans and JetBrains Mono (woff2), with their l
 tests/                  tests for the rules, with the sample files
 exemplos/               made-up files in the Linx and HR formats
 .github/workflows/      runs the tests on every push
-docs/telas/             images for this README and the social preview (og.png)
+docs/telas/             images for this README (revisao.gif included) and the social preview (og.png)
 ```
 
 ## Compared with the web version
