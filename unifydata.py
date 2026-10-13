@@ -77,9 +77,21 @@ st.markdown("""
     .ud-oculto { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .ud-contador { font: 700 12.5px/1.2 'JetBrains Mono', monospace; padding: 2px 8px; border-radius: 999px; background: var(--ud-atencao-fundo); color: var(--ud-atencao); }
     .ud-texto { color: var(--ud-texto-2); font-size: 14.5px; line-height: 1.55; margin: 6px 0 2px; max-width: 66ch; }
-    .ud-faixa { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; padding: 9px 14px; border-radius: 10px;
-                background: var(--ud-acento-fundo); color: var(--ud-texto-2); font-size: 13.5px; text-align: center; }
-    .ud-faixa b { color: light-dark(#18181b, #ededef); font-weight: 600; }
+    /* Demonstração: faixa fixa no topo da página inteira, na cor da marca; a barra, a lateral e o conteúdo descem a altura dela */
+    .ud-faixa { position: fixed; top: 0; left: 0; right: 0; z-index: 1000010; height: 40px; padding: 0 20px;
+                display: flex; align-items: center; justify-content: center; gap: 16px; white-space: nowrap;
+                background: var(--ud-acento); color: light-dark(#ffffff, #141416); font-size: 13.5px; }
+    .ud-faixa b { font-weight: 700; }
+    .ud-faixa-texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .ud-faixa-curto { display: none; }
+    .ud-faixa a.ud-faixa-sair { flex: none; display: inline-block; height: 28px; padding: 0 11px; border-radius: 7px; line-height: 26px;
+                     border: 1px solid color-mix(in srgb, currentColor 40%, transparent); background: color-mix(in srgb, currentColor 10%, transparent);
+                     color: inherit; font-weight: 600; text-decoration: none; }
+    .ud-faixa a.ud-faixa-sair:hover { background: color-mix(in srgb, currentColor 20%, transparent); }
+    .stApp:has(.ud-faixa) [data-testid="stHeader"] { top: 40px; }
+    .stApp:has(.ud-faixa) [data-testid="stSidebar"] { top: 40px; height: calc(100vh - 40px) !important; }
+    .stApp:has(.ud-faixa) [data-testid="stMainBlockContainer"] { padding-top: calc(4rem + 40px); }
+    [data-testid="stElementContainer"]:has(.ud-faixa) { position: absolute; }
     .ud-cartao-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .ud-selo { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 650; }
     .ud-selo.laranja { background: var(--ud-atencao-fundo); color: var(--ud-atencao); }
@@ -171,6 +183,11 @@ st.markdown("""
         /* Colunas vazias (só servem de espaço no computador) não viram buracos quando as colunas empilham */
         [data-testid="stColumn"]:not(:has([data-testid="stElementContainer"])) { display: none; }
         [data-testid="stMainBlockContainer"] { padding-left: 1rem; padding-right: 1rem; padding-top: 4.5rem; }
+        .stApp:has(.ud-faixa) [data-testid="stMainBlockContainer"] { padding-top: calc(4.5rem + 40px); }
+        /* No celular a faixa cabe numa linha: o aviso curto à esquerda, Sair à direita */
+        .ud-faixa { justify-content: space-between; padding: 0 12px 0 16px; font-size: 13px; }
+        .ud-faixa-longo { display: none; }
+        .ud-faixa-curto { display: inline; }
         .ud-titulo { font-size: 30px; }
         .ud-sub { font-size: 15px; }
         .ud-tabela .origem { display: none; }
@@ -419,9 +436,12 @@ def campos_cpf_empresa(i, empresas, rotulo_cpf):
 #  Interface: abertura
 # ──────────────────────────────────────────────
 if st.session_state.demo:
-    st.markdown('<div class="ud-faixa"><span><b>Demonstração</b> com os arquivos fictícios da pasta exemplos/: nada é salvo.</span></div>',
+    # Faixa no topo da página inteira, acima da lateral e da barra do Streamlit; "Sair" recarrega sem ?demo (sessão nova)
+    st.markdown('<div class="ud-faixa" role="region" aria-label="Demonstração"><span class="ud-faixa-texto"><b>Demonstração</b>'
+                '<span class="ud-faixa-longo"> com os arquivos fictícios da pasta exemplos/: nada é salvo.</span>'
+                '<span class="ud-faixa-curto">: nada é salvo</span></span>'
+                '<a class="ud-faixa-sair" href="./" target="_self">Sair<span class="ud-faixa-longo"> da demonstração</span></a></div>',
                 unsafe_allow_html=True)
-    st.button('Sair da demonstração', type='tertiary', icon=':material/close:', on_click=sair_da_demonstracao)
 
 st.markdown("""
 <div class="ud-titulo" role="heading" aria-level="1">Nomes diferentes,<br><span>a mesma pessoa.</span></div>
@@ -668,11 +688,12 @@ if st.session_state.processing_done:
   /* A empresa que cabe numa página não se divide; o total aparece uma vez só, no fim da tabela */
   section {{ margin-bottom: 14pt; break-inside: avoid; }} h2 {{ font-size: 11pt; margin: 0 0 5pt; break-after: avoid; }} tr {{ break-inside: avoid; }}
   table {{ width: 100%; border-collapse: collapse; }} tfoot {{ display: table-row-group; }}
-  .resumo .total b {{ color: #0d6e66; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-  th {{ background: #0d6e66; color: #fff; text-align: left; vertical-align: bottom; padding: 4pt 5pt; font-size: 8.5pt; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-  th.loja {{ text-align: center; padding-bottom: 2pt; border-bottom: .5pt solid rgba(255,255,255,.35); border-left: .5pt solid rgba(255,255,255,.2); }}
+  /* Destaque no mesmo tom da cor principal do site (#3fcfb9, a do logotipo), com texto escuro para ser legível no papel */
+  .resumo .total b {{ padding: 0 4pt; border-radius: 2pt; background: #3fcfb9; color: #141416; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  th {{ background: #3fcfb9; color: #141416; text-align: left; vertical-align: bottom; padding: 4pt 5pt; font-size: 8.5pt; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  th.loja {{ text-align: center; padding-bottom: 2pt; border-bottom: .5pt solid rgba(20,20,22,.3); border-left: .5pt solid rgba(20,20,22,.2); }}
   th.sub {{ padding-top: 2pt; font-size: 8pt; font-weight: 500; }} th.pessoa {{ width: 30%; }} th.cpf {{ width: 27mm; }}
-  th.ini {{ border-left: .5pt solid rgba(255,255,255,.2); }} td.ini {{ border-left: .5pt solid #e2e2e2; }}
+  th.ini {{ border-left: .5pt solid rgba(20,20,22,.2); }} td.ini {{ border-left: .5pt solid #e2e2e2; }}
   td {{ padding: 3.5pt 5pt; border-bottom: .5pt solid #ccc; }} .num {{ text-align: right; white-space: nowrap; }}
   td:first-child {{ min-width: 56mm; }} td:nth-child(2), td.num {{ white-space: nowrap; }}
   tfoot td {{ font-weight: 700; border-bottom: 0; border-top: 1pt solid #111; }} .zerado td {{ color: #888; }}

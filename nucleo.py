@@ -433,8 +433,8 @@ def gerar_excel(merged_df, origem_cols, demo=False):
     wb = Workbook()
     wb.remove(wb.active)
 
-    header_fill = PatternFill(start_color='0D6E66', end_color='0D6E66', fill_type='solid')  # verde-azulado da marca, como na tela
-    header_font = Font(color='FFFFFF', bold=True)
+    header_fill = PatternFill(start_color='3FCFB9', end_color='3FCFB9', fill_type='solid')  # a cor principal do site, como no relatório
+    header_font = Font(color='141416', bold=True)
     gray_font   = Font(color='808080')
     center      = Alignment(horizontal='center', vertical='center')
     moeda       = '"R$" #,##0.00'
