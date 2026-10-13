@@ -54,7 +54,7 @@ st.markdown("""
     [data-testid="stHeader"] { background: var(--ud-fundo); }
     [data-testid="stMainBlockContainer"] { max-width: 820px; padding-top: 4rem; padding-bottom: 2rem; }
     /* Monitor largo: a coluna cresce, e a tabela do resultado cabe ao lado da fita sem apertar */
-    @media (min-width: 1360px) { [data-testid="stMainBlockContainer"] { max-width: 1000px; } }
+    @media (min-width: 1200px) { [data-testid="stMainBlockContainer"] { max-width: 1000px; } }
     /* Texto do botão principal com o contraste certo nos dois temas */
     [data-testid^="stBaseButton-primary"]:not(:disabled),
     [data-testid^="stBaseButton-primary"]:not(:disabled) p,
@@ -675,7 +675,7 @@ if st.session_state.processing_done:
   @media print {{
     @page {{ size: A4; margin: 14mm 12mm;
              @bottom-right {{ content: counter(page) " / " counter(pages); font: 7.5pt 'JetBrains Mono', monospace; color: #888; }} }} {paisagem}
-    html, body {{ background: #fff; }}
+    html {{ background: #fff; }} body {{ background: none; }}  /* sem fundo no body: a marca-d'água da demonstração fica visível */
     button {{ display: none; }}
     .relatorio {{ display: block; font-size: 9.5pt; line-height: 1.4; color: #111; }}
   }}
