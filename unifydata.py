@@ -11,9 +11,9 @@ import pandas as pd
 import streamlit as st
 
 from nucleo import (
-    brl, consolidar, divergencia_repetido, empresa_do_arquivo, encontrar_divergencias, fixar_linha, formatar_cpf,
-    gerar_csv, gerar_excel, lista_por_extenso, nome_exibicao, normalizar, ordenar, parse_hr_files, parse_linx_files,
-    pelo_nome, renomear, so_digitos,
+    AVISO_DEMO, brl, consolidar, divergencia_repetido, empresa_do_arquivo, encontrar_divergencias, fixar_linha, formatar_cpf,
+    gerar_csv, gerar_excel, lista_por_extenso, nome_do_arquivo, nome_exibicao, normalizar, ordenar, parse_hr_files,
+    parse_linx_files, pelo_nome, renomear, so_digitos,
 )
 
 PASTA = Path(__file__).parent
@@ -583,7 +583,10 @@ if st.session_state.processing_done:
                     f'<div class="cab"><div><h1>Fechamento de consumo</h1><p>{escape(" · ".join(origens))}'
                     f'{f" · Vencimentos de {escape(periodo)}" if periodo else ""}</p></div>'
                     f'<div class="meta">UnifyData<br>{hoje}</div></div>'
-                    f'<div class="resumo"><div><span>Com consumo</span><b>{len(com_consumo)}</b></div>'
+                    # Demonstração: aviso no topo e marca-d'água em todas as páginas
+                    + (f'<p class="demo">{AVISO_DEMO}</p><div class="marca" aria-hidden="true">Demonstração</div>'
+                       if st.session_state.demo else '')
+                    + f'<div class="resumo"><div><span>Com consumo</span><b>{len(com_consumo)}</b></div>'
                     f'<div><span>Empresas</span><b>{len(grupos)}</b></div><div><span>Total a descontar</span><b>{brl(total)}</b></div></div>'
                     + ''.join(f'<section><h2>{escape(emp)}</h2>{tabela_relatorio(merged[merged["Empresa"] == emp])}</section>'
                               for emp in grupos['Empresa'])
@@ -614,6 +617,9 @@ if st.session_state.processing_done:
   }}
   .cab {{ display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 8pt; border-bottom: 1.5pt solid #111; margin-bottom: 12pt; }}
   h1 {{ font-size: 15pt; margin: 0; }} .cab p {{ margin: 2pt 0 0; color: #444; }} .meta {{ text-align: right; color: #444; }}
+  .demo {{ margin: -4pt 0 12pt; padding: 5pt 8pt; border: 1pt solid #111; font-size: 9pt; font-weight: 600; }}
+  .marca {{ position: fixed; inset: 0; z-index: -1; display: grid; place-items: center; pointer-events: none;
+            font: 700 80pt/1 'Instrument Sans', sans-serif; color: rgba(0,0,0,.05); transform: rotate(-32deg); }}
   .resumo {{ display: flex; gap: 22pt; margin-bottom: 14pt; }} .resumo span {{ display: block; color: #555; font-size: 8.5pt; }} .resumo b {{ font-size: 12pt; }}
   /* A empresa que cabe numa página não se divide; o total aparece uma vez só, no fim da tabela */
   section {{ margin-bottom: 14pt; break-inside: avoid; }} h2 {{ font-size: 11pt; margin: 0 0 5pt; break-after: avoid; }} tr {{ break-inside: avoid; }}
@@ -653,15 +659,15 @@ if st.session_state.processing_done:
 </body></html>"""
 
                 st.markdown('<div style="height: 6px"></div>', unsafe_allow_html=True)
-                sufixo = date.today().isoformat()
+                nome = nome_do_arquivo(st.session_state.periodos, demo=st.session_state.demo)
                 a1, a2, a3 = st.columns([1.3, 0.8, 1.3])
                 a1.download_button(
-                    label='Baixar Excel', data=gerar_excel(merged, origens), file_name=f'Fechamento_UnifyData_{sufixo}.xlsx',
+                    label='Baixar Excel', data=gerar_excel(merged, origens, demo=st.session_state.demo), file_name=f'{nome}.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     type='primary', icon=':material/download:', width='stretch'
                 )
                 a2.download_button(
-                    label='CSV', data=gerar_csv(merged, origens), file_name=f'Fechamento_UnifyData_{sufixo}.csv',
+                    label='CSV', data=gerar_csv(merged, origens), file_name=f'{nome}.csv',
                     mime='text/csv', icon=':material/table:', width='stretch'
                 )
                 with a3:

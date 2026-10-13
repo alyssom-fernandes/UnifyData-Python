@@ -11,6 +11,7 @@ import logging
 import math
 import re
 import unicodedata
+from datetime import date
 
 import pandas as pd
 from openpyxl import Workbook
@@ -22,6 +23,7 @@ PARTICULAS = {'da', 'das', 'de', 'do', 'dos', 'e'}
 SEMELHANCA_MINIMA = 85
 SEM_LINHA = -1  # consumo ainda ligado pelo nome, não por uma linha do RH
 BOM = chr(0xFEFF)
+AVISO_DEMO = 'Demonstração com dados fictícios, gerada com os arquivos de exemplo do UnifyData. Não é um fechamento real.'
 log = logging.getLogger(__name__)
 
 
@@ -379,11 +381,26 @@ def ordenar(df):
     return df.sort_values('Nome', key=lambda s: s.map(normalizar))
 
 
-def gerar_excel(merged_df, origem_cols):
+def nome_do_arquivo(periodos, demo=False, hoje=None):
+    """
+    Nome dos arquivos exportados pelo mês dos vencimentos: ["01/09/2026 a 30/09/2026"] → Fechamento_UnifyData_2026-09.
+    Vencimentos em meses diferentes viram "2026-09_a_2026-10"; sem período, vale a data de hoje.
+    Na demonstração o nome termina em _DEMO, para o arquivo não passar por um fechamento real.
+    """
+    meses = sorted(f'{a}-{m}' for _, m, a in re.findall(r'(\d{2})/(\d{2})/(\d{4})', ' '.join(periodos or [])))
+    if not meses:
+        rotulo = (hoje or date.today()).isoformat()
+    else:
+        rotulo = meses[0] if meses[0] == meses[-1] else f'{meses[0]}_a_{meses[-1]}'
+    return f"Fechamento_UnifyData_{rotulo}{'_DEMO' if demo else ''}"
+
+
+def gerar_excel(merged_df, origem_cols, demo=False):
     """
     Gera o Excel final com uma aba por empresa.
     Colunas por origem: Vencido [X] | Total [X] | ... | Total Desconto
     merged_df deve conter colunas Vencido__<origem> e Total__<origem>.
+    Na demonstração, cada aba avisa que os dados são fictícios (embaixo da tabela e no cabeçalho da impressão).
     """
     wb = Workbook()
     wb.remove(wb.active)
@@ -453,6 +470,16 @@ def gerar_excel(merged_df, origem_cols):
                         for c in col if c.value is not None]
             ws.column_dimensions[letra].width = min(max(tamanhos, default=10) + 3, 48)
 
+        # Depois das larguras, para o aviso longo não alargar a coluna dos nomes
+        if demo:
+            ws.append([])
+            ws.append([AVISO_DEMO])
+            ws.cell(ws.max_row, 1).font = Font(italic=True, color='808080')
+            ws.oddHeader.center.text = 'DEMONSTRAÇÃO: dados fictícios'
+            ws.oddHeader.center.font = '-,Bold'  # fonte padrão, em negrito
+
+    if demo:
+        wb.properties.subject = AVISO_DEMO
     if not wb.sheetnames:
         wb.create_sheet('Dados')
 

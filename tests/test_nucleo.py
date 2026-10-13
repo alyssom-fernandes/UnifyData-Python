@@ -2,6 +2,7 @@
 import io
 import sys
 import unittest
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -145,6 +146,25 @@ class Exportacao(unittest.TestCase):
         self.assertTrue(ws['A3'].font.color.rgb.endswith('808080'), 'quem não consumiu fica em cinza')
         self.assertEqual([c.value for c in ws[4]], ['TOTAL GERAL', None, 1.5, 2.0, 2.0])
         self.assertEqual(ws.freeze_panes, 'A2')
+
+    def test_excel_da_demonstracao_avisa_que_os_dados_sao_ficticios(self):
+        wb = load_workbook(N.gerar_excel(self.merged, ['LOJA'], demo=True))
+        ws = wb['Obras - Sede']
+        self.assertEqual(ws.cell(ws.max_row, 1).value, N.AVISO_DEMO)
+        self.assertEqual([c.value for c in ws[4]], ['TOTAL GERAL', None, 1.5, 2.0, 2.0], 'o aviso fica depois do total')
+        self.assertEqual(ws.oddHeader.center.text, 'DEMONSTRAÇÃO: dados fictícios')
+        self.assertLess(ws.column_dimensions['A'].width, 48, 'o aviso não alarga a coluna dos nomes')
+        sem_demo = load_workbook(N.gerar_excel(self.merged, ['LOJA']))['Obras - Sede']
+        self.assertEqual(sem_demo.max_row, 4)
+
+    def test_nome_do_arquivo_pelo_mes_dos_vencimentos(self):
+        hoje = date(2026, 10, 13)
+        self.assertEqual(N.nome_do_arquivo(['01/09/2026 a 30/09/2026'], hoje=hoje), 'Fechamento_UnifyData_2026-09')
+        self.assertEqual(N.nome_do_arquivo(['16/09/2026 a 15/10/2026'], hoje=hoje), 'Fechamento_UnifyData_2026-09_a_2026-10')
+        self.assertEqual(N.nome_do_arquivo([], hoje=hoje), 'Fechamento_UnifyData_2026-10-13', 'sem período, vale a data de hoje')
+        self.assertEqual(N.nome_do_arquivo(['01/09/2026 a 30/09/2026'], demo=True, hoje=hoje), 'Fechamento_UnifyData_2026-09_DEMO')
+        _, _, periodos = N.parse_linx_files(linx_exemplo())
+        self.assertEqual(N.nome_do_arquivo(periodos, hoje=hoje), 'Fechamento_UnifyData_2026-09')
 
     def test_csv_para_o_excel_brasileiro(self):
         csv = N.gerar_csv(self.merged, ['LOJA']).decode('utf-8')
