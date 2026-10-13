@@ -592,8 +592,10 @@ if st.session_state.processing_done:
 
                 paisagem = '@page { size: A4 landscape; } th.pessoa { width: auto; }' if len(origens) >= 3 else ''
                 botao_imprimir = f"""<!doctype html><html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
+  /* Mesmas fontes do app, servidas por ele mesmo (static/fonts) */
+  @font-face {{ font-family: 'Instrument Sans'; src: url('/app/static/fonts/instrument-sans.woff2') format('woff2'); font-weight: 400 700; }}
+  @font-face {{ font-family: 'JetBrains Mono'; src: url('/app/static/fonts/jetbrains-mono.woff2') format('woff2'); font-weight: 400 700; }}
   :root {{ --fundo: #f6f6f7; --botao: #ffffff; --borda: #d1d1d8; --texto: #18181b; --destaque: #18181b; }}
   html, body {{ margin: 0; background: var(--fundo); font-family: 'Instrument Sans', system-ui, sans-serif; }}
   button {{ width: 100%; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;

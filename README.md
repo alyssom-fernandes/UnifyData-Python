@@ -129,7 +129,8 @@ the result and in the report.
   on `localhost`, so other machines on the network cannot open it. The
   files stay in the memory of your Streamlit session and are not written
   anywhere; closing the session discards them. Streamlit's usage
-  statistics are turned off.
+  statistics are turned off, and the fonts are served by the app itself
+  (`static/fonts`): nothing is fetched from Google Fonts.
 - **The sample mode** loads the made-up files from `exemplos/`; it does
   not touch anything else.
 - **Text from the files is never trusted**: names and file names are escaped
@@ -145,7 +146,7 @@ the result and in the report.
 | Data | pandas for reading and consolidating; xlrd for legacy .xls |
 | Names | thefuzz (`token_sort_ratio`) for similarity |
 | Writing | openpyxl for the .xlsx; the CSV and the report are made by the app |
-| Fonts | Instrument Sans for the interface; JetBrains Mono for labels and the signature |
+| Fonts | Instrument Sans for the interface; JetBrains Mono for labels and the signature, hosted in the project (SIL OFL 1.1) |
 | Tests | `unittest`, on every push (GitHub Actions) |
 
 Some decisions behind it:
@@ -175,8 +176,6 @@ Some decisions behind it:
   each month. (The [web version](https://github.com/alyssom-fernandes/UnifyData-Web)
   keeps a register and matches by employee code instead.)
 - It needs Python on the computer; there is no hosted version.
-- The fonts come from Google Fonts; without internet, the system fonts are
-  used.
 - Some parts belong to Streamlit itself: the ⋮ menu is in English, and its
   *Print* prints the whole page (the **Imprimir ou PDF** button prints
   only the report).
@@ -214,6 +213,7 @@ requirements.txt        dependencies
 Iniciar_UnifyData.bat   Windows launcher
 .streamlit/config.toml  light and dark themes, fonts, toolbar, telemetry off
 assets/favicon.png      the UnifyData mark
+static/fonts/           Instrument Sans and JetBrains Mono (woff2), with their licenses
 tests/                  tests for the rules, with the sample files
 exemplos/               made-up files in the Linx and HR formats
 .github/workflows/      runs the tests on every push

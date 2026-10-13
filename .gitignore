@@ -14,6 +14,9 @@ Docs Teste/
 !exemplos/*.xlsx
 !exemplos/*.pdf
 
+# Licenças das fontes hospedadas no projeto
+!static/fonts/OFL-*.txt
+
 # Python
 __pycache__/
 *.py[cod]

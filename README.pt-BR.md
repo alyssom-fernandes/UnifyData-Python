@@ -127,7 +127,9 @@ resultado e no relatório.
   atende apenas em `localhost`, então outras máquinas da rede não
   conseguem abrir o app. Os arquivos ficam na memória da sua sessão do
   Streamlit e não são gravados em lugar nenhum; fechar a sessão descarta
-  tudo. As estatísticas de uso do Streamlit estão desligadas.
+  tudo. As estatísticas de uso do Streamlit estão desligadas, e as fontes
+  são servidas pelo próprio app (`static/fonts`): nada é buscado no Google
+  Fonts.
 - **O modo de exemplo** carrega os arquivos fictícios de `exemplos/`; não
   mexe em mais nada.
 - **Texto vindo dos arquivos nunca é confiável**: nomes e nomes de arquivo são
@@ -143,7 +145,7 @@ resultado e no relatório.
 | Dados | pandas para ler e consolidar; xlrd para .xls antigo |
 | Nomes | thefuzz (`token_sort_ratio`) para a semelhança |
 | Escrita | openpyxl para o .xlsx; o CSV e o relatório são feitos pelo app |
-| Fontes | Instrument Sans na interface; JetBrains Mono em rótulos e na assinatura |
+| Fontes | Instrument Sans na interface; JetBrains Mono em rótulos e na assinatura, hospedadas no projeto (SIL OFL 1.1) |
 | Testes | `unittest`, a cada push (GitHub Actions) |
 
 Algumas decisões por trás:
@@ -173,8 +175,6 @@ Algumas decisões por trás:
   [versão Web](https://github.com/alyssom-fernandes/UnifyData-Web) guarda
   uma base e cruza pela matrícula.)
 - Precisa de Python no computador; não há versão hospedada.
-- As fontes vêm do Google Fonts; sem internet, entram as fontes do
-  sistema.
 - Algumas partes são do próprio Streamlit: o menu ⋮ está em inglês, e o
   *Print* dele imprime a página inteira (o botão **Imprimir ou PDF**
   imprime só o relatório).
@@ -210,6 +210,7 @@ requirements.txt        dependências
 Iniciar_UnifyData.bat   atalho para Windows
 .streamlit/config.toml  temas claro e escuro, fontes, barra de ferramentas, telemetria desligada
 assets/favicon.png      a marca do UnifyData
+static/fonts/           Instrument Sans e JetBrains Mono (woff2), com as licenças
 tests/                  testes das regras, com os arquivos de exemplo
 exemplos/               arquivos fictícios nos formatos do Linx e do RH
 .github/workflows/      roda os testes a cada push
