@@ -85,6 +85,10 @@ Taken from the sample files.
   numbered pages. Ignored people are listed at the bottom, with the
   amount.
 
+The files are named after the month of the due dates
+(`Fechamento_UnifyData_2026-09.xlsx`). In the sample mode, the name ends
+in `_DEMO`, and the Excel and the report say the data is made up.
+
 ## What it does
 
 ### Reading
@@ -184,8 +188,8 @@ Some decisions behind it:
 
 ## Running it
 
-Python 3.10 or newer (the tests run on 3.12 in CI; the app was used
-with 3.14):
+Python 3.10 or newer. On every push, CI runs the tests and compiles the
+app on Python 3.10, 3.12 and 3.14:
 
 ```bash
 pip install -r requirements.txt

@@ -82,6 +82,10 @@ Tiradas com os arquivos de exemplo.
   três lojas ou mais, cada empresa inteira na página quando cabe, e páginas
   numeradas. Quem foi ignorado aparece no rodapé, com o valor.
 
+Os arquivos levam o mês dos vencimentos no nome
+(`Fechamento_UnifyData_2026-09.xlsx`). No modo de exemplo, o nome termina
+em `_DEMO`, e o Excel e o relatório avisam que os dados são fictícios.
+
 ## O que faz
 
 ### Leitura
@@ -182,8 +186,8 @@ Algumas decisões por trás:
 
 ## Rodando
 
-Python 3.10 ou mais novo (os testes rodam no 3.12 no CI; o app foi
-usado com o 3.14):
+Python 3.10 ou mais novo. A cada push, o CI roda os testes e compila o
+app no Python 3.10, no 3.12 e no 3.14:
 
 ```bash
 pip install -r requirements.txt

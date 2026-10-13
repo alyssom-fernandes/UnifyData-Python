@@ -543,13 +543,14 @@ if st.session_state.processing_done:
                     + ''.join(f'<td class="num origem">{brl(getattr(g, f"o_{k}"))}</td>' for k in range(len(origens)))
                     + f'<td class="num">{brl(g.Total)}</td></tr>'
                     for g in grupos.itertuples())
+                totais_loja = [brl(grupos[f'o_{k}'].sum()) for k in range(len(origens))]
                 st.markdown(f"""
                 <div class="ud-rolagem"><table class="ud-tabela{' varias' if len(origens) >= 4 else ''}">
                   <thead><tr><th>Empresa</th><th class="num">Pessoas</th>
                     {''.join(f'<th class="num origem">{escape(o)}</th>' for o in origens)}<th class="num">Total</th></tr></thead>
                   <tbody>{linhas}</tbody>
                   <tfoot><tr><td>Total</td><td class="num">{len(com_consumo)}</td>
-                    {''.join(f'<td class="num origem">{brl(grupos[f"o_{k}"].sum())}</td>' for k in range(len(origens)))}
+                    {''.join(f'<td class="num origem">{t}</td>' for t in totais_loja)}
                     <td class="num">{brl(total)}</td></tr></tfoot>
                 </table></div>""", unsafe_allow_html=True)
 
