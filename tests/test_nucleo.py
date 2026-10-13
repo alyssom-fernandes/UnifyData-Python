@@ -64,6 +64,13 @@ class Leitura(unittest.TestCase):
         self.assertEqual(avisos, [])
         self.assertEqual(hr.to_dict('records'), [{'Nome': 'SILVA, JOÃO', 'CPF': '12345678901', 'Empresa': 'Loja'}])
 
+    def test_planilha_ilegivel_fica_de_fora_com_aviso_claro(self):
+        with self.assertLogs('nucleo', level='WARNING') as registro:
+            hr, avisos = N.parse_hr_files([Arquivo('Empregados Loja.xlsx', b'isto nao e uma planilha')])
+        self.assertTrue(hr.empty)
+        self.assertEqual(avisos, ['**Empregados Loja.xlsx**: não parece uma planilha .xls, .xlsx ou .csv válida, o arquivo ficou de fora.'])
+        self.assertIn('Empregados Loja.xlsx', registro.output[0], 'o detalhe técnico vai para o console, não para a tela')
+
 
 class Cruzamento(unittest.TestCase):
     def test_exemplos_um_ligado_por_acento_e_cinco_divergencias(self):

@@ -7,6 +7,7 @@ A tela (unifydata.py) e os testes (tests/) usam só estas funções.
 import csv
 import hashlib
 import io
+import logging
 import math
 import re
 import unicodedata
@@ -21,6 +22,7 @@ PARTICULAS = {'da', 'das', 'de', 'do', 'dos', 'e'}
 SEMELHANCA_MINIMA = 85
 SEM_LINHA = -1  # consumo ainda ligado pelo nome, não por uma linha do RH
 BOM = chr(0xFEFF)
+log = logging.getLogger(__name__)
 
 
 # ──────────────────────────────────────────────
@@ -162,8 +164,10 @@ def parse_hr_files(hr_files):
 
             if len(records) == antes:
                 avisos.append(f"**{file.name}**: não encontrei funcionários (colunas Nome e CPF), o arquivo ficou de fora.")
-        except Exception as e:
-            avisos.append(f"**{file.name}**: não foi possível ler ({e}).")
+        except Exception:
+            # Qualquer arquivo ruim só fica de fora: a tela mostra o aviso e o detalhe técnico vai para o console
+            log.warning('Planilha do RH ilegível: %s', file.name, exc_info=True)
+            avisos.append(f"**{file.name}**: não parece uma planilha .xls, .xlsx ou .csv válida, o arquivo ficou de fora.")
 
     df = pd.DataFrame(records) if records else pd.DataFrame(columns=['Nome', 'CPF', 'Empresa'])
     return df.drop_duplicates(subset=['Nome', 'CPF', 'Empresa']).reset_index(drop=True), avisos
@@ -218,8 +222,9 @@ def parse_linx_files(linx_files):
 
             if len(records) == antes:
                 avisos.append(f"**{file.name}**: nenhum consumo encontrado, o arquivo ficou de fora.")
-        except Exception as e:
-            avisos.append(f"**{file.name}**: não foi possível ler ({e}).")
+        except Exception:
+            log.warning('Relatório do Linx ilegível: %s', file.name, exc_info=True)
+            avisos.append(f"**{file.name}**: não parece um relatório do Linx em .csv, o arquivo ficou de fora.")
 
     df = pd.DataFrame(records) if records else pd.DataFrame(columns=['Nome', 'Vencido', 'Total', 'Origem'])
     # Linha do RH dona do consumo: SEM_LINHA enquanto o cruzamento é pelo nome; o índice da linha quando o CPF já decidiu
