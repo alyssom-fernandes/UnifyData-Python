@@ -214,6 +214,7 @@ python -m unittest discover -s tests
 unifydata.py            the Streamlit app: steps, review cards, result and exports
 nucleo.py               pure rules: reading, name matching, consolidation, Excel, CSV
 requirements.txt        dependencies
+CHANGELOG.md            what changed in each version
 Iniciar_UnifyData.bat   Windows launcher
 .streamlit/config.toml  light and dark themes, fonts, toolbar, telemetry off
 assets/favicon.png      the UnifyData mark

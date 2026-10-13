@@ -211,6 +211,7 @@ python -m unittest discover -s tests
 unifydata.py            o app Streamlit: etapas, cartões de revisão, resultado e exportações
 nucleo.py               regras puras: leitura, cruzamento de nomes, consolidação, Excel, CSV
 requirements.txt        dependências
+CHANGELOG.md            o que mudou em cada versão (em inglês)
 Iniciar_UnifyData.bat   atalho para Windows
 .streamlit/config.toml  temas claro e escuro, fontes, barra de ferramentas, telemetria desligada
 assets/favicon.png      a marca do UnifyData
