@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      # Só o que o núcleo usa: a interface (Streamlit) não entra nos testes
-      - run: pip install pandas openpyxl xlrd thefuzz
+      # As mesmas versões do requirements.txt: o teste da tela usa o Streamlit
+      - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
-      # A tela não roda no CI, mas precisa ao menos compilar em todas as versões
+      # A tela também precisa compilar em todas as versões
       - run: python -m py_compile unifydata.py nucleo.py

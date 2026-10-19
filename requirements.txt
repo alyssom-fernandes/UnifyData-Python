@@ -1,5 +1,8 @@
-streamlit>=1.57
-pandas>=2.0
-openpyxl>=3.1
-xlrd>=2.0
-thefuzz>=0.20
+# Versões testadas (as instaladas na máquina onde os testes rodam).
+# O pandas 3 exige Python 3.11 ou mais novo; no 3.10 vale a linha 2.x.
+streamlit==1.57.0
+pandas==3.0.3; python_version >= "3.11"
+pandas>=2.0,<3; python_version < "3.11"
+openpyxl==3.1.5
+xlrd==2.0.2
+thefuzz==0.22.1
