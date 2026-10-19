@@ -121,6 +121,8 @@ st.markdown("""
     .ud-fita .ud-fita-soma { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--ud-borda-2); }
     .ud-fita .ud-fita-soma dt span, .ud-fita .ud-fita-soma dd { font-weight: 700; }
     .ud-fita .ud-fita-menos dd { color: var(--ud-atencao); }
+    .ud-fita .ud-fita-confere dt span, .ud-fita .ud-fita-confere dd { color: var(--ud-texto-3); font-size: 12.5px; }
+    .ud-fita .ud-fita-diverge dd { color: var(--ud-atencao); font-weight: 700; }
     .ud-fita .ud-fita-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px;
                               margin-top: 10px; padding-top: 10px; border-top: 3px double var(--ud-texto-3); color: var(--ud-acento); }
     .ud-fita .ud-fita-total dt { margin: 0; font: 600 14px/1.3 'Instrument Sans', sans-serif; }
@@ -217,11 +219,11 @@ defaults = {
     'origens': [],
     'periodos': [],
     'totais_linx': {},
+    'totais_relatorio': {},
     'avisos': [],
     'ignorados': [],
     'ligados_auto': 0,
     'erros_div': {},
-    'escolhas': {},
     'demo': False,
     'erro_envio': None,
     'rodada': 0,
@@ -240,7 +242,7 @@ class ArquivoDeExemplo(io.BytesIO):
 
 def processar(hr_files, linx_files):
     hr_df, avisos_rh = parse_hr_files(hr_files)
-    linx_df, avisos_linx, periodos = parse_linx_files(linx_files)
+    linx_df, avisos_linx, periodos, totais_relatorio = parse_linx_files(linx_files)
     if hr_df.empty:
         st.session_state.erro_envio = ('Não consegui tirar funcionários das planilhas do RH. Confira se elas têm as colunas **Nome** e **CPF**.', avisos_rh)
         return
@@ -251,6 +253,7 @@ def processar(hr_files, linx_files):
     st.session_state.update(
         hr_df=hr_df, linx_df=linx_df, origens=list(dict.fromkeys(linx_df['Origem'])), periodos=periodos,
         totais_linx=totais_por_loja(linx_df),  # antes de qualquer divergência ser ignorada: é o que a fita confere
+        totais_relatorio=totais_relatorio,  # o "Total geral" que o próprio Linx imprimiu, para conferir a soma lida
         divergences=divergencias, avisos=avisos_rh + avisos_linx, ligados_auto=ligados, erro_envio=None, processing_done=True,
     )
 
@@ -315,7 +318,7 @@ def _limpar_erro(div_id):
 
 def _atualizar_repetido(nome_rh):
     """Nome que se repete no RH vira cartão para escolher a linha; se o cartão já existe, o valor dele é refeito."""
-    nova = divergencia_repetido(st.session_state.hr_df, st.session_state.linx_df, nome_rh, st.session_state.escolhas)
+    nova = divergencia_repetido(st.session_state.hr_df, st.session_state.linx_df, nome_rh)
     if not nova:
         return
     existente = next((d for d in st.session_state.divergences if d['id'] == nova['id']), None)
@@ -552,7 +555,7 @@ if st.session_state.processing_done:
     #  Interface: Download
     # ──────────────────────────────────────────────
     else:
-        merged  = consolidar(st.session_state.hr_df, st.session_state.linx_df, st.session_state.origens, st.session_state.escolhas)
+        merged  = consolidar(st.session_state.hr_df, st.session_state.linx_df, st.session_state.origens)
         origens = st.session_state.origens
         periodo = '; '.join(st.session_state.periodos)
         com_consumo = merged[merged['Total Desconto'] > 0]
@@ -579,8 +582,17 @@ if st.session_state.processing_done:
                                 f'Consumos de {escape(lista_por_extenso(origens))}{f", vencimentos de {escape(periodo)}" if periodo else ""}, '
                                 'cruzados com as planilhas do RH.')
 
+                # A soma dos responsáveis lidos tem de fechar com o "Total geral" do relatório; se não fecha, falta consumo na leitura
+                conf = conferencia(st.session_state.totais_linx, ign, st.session_state.totais_relatorio)
+                if conf['divergentes']:
+                    detalhe = '; '.join(f'{escape(o)}: lido {brl(lido)}, relatório {brl(rel)}' for o, lido, rel in conf['divergentes'])
+                    st.warning(f'**A soma lida não fecha com o Total geral do relatório do Linx** ({detalhe}). '
+                               'Algum responsável pode não ter sido reconhecido: confira o arquivo antes de usar a planilha.',
+                               icon=':material/warning:')
+                elif conf['no_relatorio'] is None:
+                    st.caption('Algum relatório não traz a linha "Total geral", então a soma lida não pôde ser conferida com ele.')
+
                 # Fita de conferência: o total de cada loja no Linx (+), a soma (=), o ignorado (−) e o que vai para a folha
-                conf = conferencia(st.session_state.totais_linx, ign)
                 numero = lambda v: brl(v)[3:]  # na fita, só o número; o R$ fica no total
                 linha_fita = lambda rotulo, valor, op, classe='': (
                     f'<div class="ud-fita-linha{classe}"><dt><span>{escape(rotulo)}</span></dt>'
@@ -592,6 +604,9 @@ if st.session_state.processing_done:
                     + (f'<p class="ud-fita-mes">Vencimentos de {escape(mes)}</p>' if mes else '') + '<dl>'
                     + ''.join(linha_fita(o, numero(v), '+') for o, v in conf['por_origem'])
                     + linha_fita('Total no Linx', numero(conf['consumo']), '=', ' ud-fita-soma')
+                    + (linha_fita('Total geral no relatório', numero(conf['no_relatorio']), '',
+                                  ' ud-fita-diverge' if conf['divergentes'] else ' ud-fita-confere')
+                       if conf['no_relatorio'] is not None else '')
                     + linha_fita(f'Ignorado ({n_ign} {"pessoa" if n_ign == 1 else "pessoas"})' if n_ign else 'Ignorado',
                                  f'−{numero(conf["ignorado"])}', '', ' ud-fita-menos')
                     + f'<div class="ud-fita-total"><dt>A descontar</dt><dd>{brl(total)}</dd></div></dl>'
@@ -648,6 +663,8 @@ if st.session_state.processing_done:
                     # Demonstração: aviso no topo e marca-d'água em todas as páginas
                     + (f'<p class="demo">{AVISO_DEMO}</p><div class="marca" aria-hidden="true">Demonstração</div>'
                        if st.session_state.demo else '')
+                    + (f'<p class="demo">Atenção: a soma lida não fecha com o Total geral do relatório do Linx ({detalhe}).</p>'
+                       if conf['divergentes'] else '')
                     + f'<div class="resumo"><div><span>Com consumo</span><b>{len(com_consumo)}</b></div>'
                     f'<div><span>Empresas</span><b>{len(grupos)}</b></div><div><span>Total no Linx</span><b>{brl(conf["consumo"])}</b></div>'
                     f'<div><span>Ignorado</span><b>{brl(conf["ignorado"])}</b></div>'
@@ -769,7 +786,7 @@ if feito:
     if n_div:
         resumo_planilha = 'Depois das divergências'
     else:
-        total_lateral = float(consolidar(ss.hr_df, ss.linx_df, ss.origens, ss.escolhas)['Total Desconto'].sum())
+        total_lateral = float(consolidar(ss.hr_df, ss.linx_df, ss.origens)['Total Desconto'].sum())
         resumo_planilha = brl(total_lateral) if total_lateral else 'Nada para descontar'
 else:
     resumo_rh = f"{n_rh} {'planilha' if n_rh == 1 else 'planilhas'}" if n_rh else 'Nenhuma planilha'

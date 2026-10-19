@@ -44,7 +44,7 @@ class Leitura(unittest.TestCase):
         self.assertTrue((hr['CPF'].str.len() == 11).all())
 
     def test_relatorios_do_linx_de_exemplo(self):
-        linx, avisos, periodos = N.parse_linx_files(linx_exemplo())
+        linx, avisos, periodos, _ = N.parse_linx_files(linx_exemplo())
         self.assertEqual(avisos, [])
         self.assertEqual(len(linx), 34)
         self.assertEqual(periodos, ['01/09/2026 a 30/09/2026'])
@@ -55,8 +55,40 @@ class Leitura(unittest.TestCase):
         texto = ('Conta: 1 Responsável: 1 - ANA;;\r\nTotal;;18,50;;\r\n'
                  'Conta: 1 Responsável: 2 - BRUNO;;\r\nTotal;1.234,56;2.000,10;;\r\n'
                  'Total geral;1.234,56;2.018,60;;\r\n').encode('cp1252')
-        linx, _, _ = N.parse_linx_files([Arquivo('LOJA.csv', texto)])
+        linx, _, _, _ = N.parse_linx_files([Arquivo('LOJA.csv', texto)])
         self.assertEqual(linx[['Nome', 'Vencido', 'Total']].values.tolist(), [['ANA', 0.0, 18.5], ['BRUNO', 1234.56, 2000.1]])
+
+    def test_total_geral_do_relatorio_e_lido_por_origem(self):
+        _, _, _, declarados = N.parse_linx_files(linx_exemplo())
+        self.assertEqual(declarados, {'LOJA': 1385.6, 'RESTAURANTE': 1296.2})
+
+    def test_total_geral_que_bate_com_a_soma_dos_responsaveis(self):
+        texto = ('Conta: 1 Responsável: 1 - ANA;;\r\nTotal;;18,50;;\r\n'
+                 'Conta: 1 Responsável: 2 - BRUNO;;\r\nTotal;1.234,56;2.000,10;;\r\n'
+                 'Total geral;1.234,56;2.018,60;;\r\n').encode('cp1252')
+        linx, _, _, declarados = N.parse_linx_files([Arquivo('LOJA.csv', texto)])
+        c = N.conferencia(N.totais_por_loja(linx), [], declarados)
+        self.assertEqual(declarados, {'LOJA': 2018.6})
+        self.assertEqual((c['consumo'], c['no_relatorio'], c['divergentes']), (2018.6, 2018.6, []))
+
+    def test_total_geral_que_nao_bate_vira_divergencia(self):
+        # O bloco do BRUNO não traz a linha "Total": o parser não o reconhece e o valor some da soma
+        texto = ('Conta: 1 Responsável: 1 - ANA;;\r\nTotal;;18,50;;\r\n'
+                 'Conta: 1 Responsável: 2 - BRUNO;;\r\nSubtotal;1.234,56;2.000,10;;\r\n'
+                 'Total geral;1.234,56;2.018,60;;\r\n').encode('cp1252')
+        linx, _, _, declarados = N.parse_linx_files([Arquivo('LOJA.csv', texto)])
+        c = N.conferencia(N.totais_por_loja(linx), [], declarados)
+        self.assertEqual(c['consumo'], 18.5)
+        self.assertEqual(c['no_relatorio'], 2018.6)
+        self.assertEqual(c['divergentes'], [('LOJA', 18.5, 2018.6)])
+
+    def test_relatorio_sem_total_geral_nao_e_conferido(self):
+        texto = 'Conta: 1 Responsável: 1 - ANA;;\r\nTotal;;18,50;;\r\n'.encode('cp1252')
+        linx, _, _, declarados = N.parse_linx_files([Arquivo('LOJA.csv', texto)])
+        c = N.conferencia(N.totais_por_loja(linx), [], declarados)
+        self.assertEqual(declarados, {})
+        self.assertIsNone(c['no_relatorio'])
+        self.assertEqual(c['divergentes'], [])
 
     def test_csv_do_rh_com_titulo_aspas_e_rodape(self):
         texto = ('RELAÇÃO DE FUNCIONÁRIOS\nNome;CPF;Endereço\n"SILVA, JOÃO";123.456.789-01;"Rua A, 1"\n'
@@ -76,7 +108,7 @@ class Leitura(unittest.TestCase):
 class Cruzamento(unittest.TestCase):
     def test_exemplos_um_ligado_por_acento_e_cinco_divergencias(self):
         hr, _ = N.parse_hr_files(rh_exemplo())
-        linx, _, _ = N.parse_linx_files(linx_exemplo())
+        linx, _, _, _ = N.parse_linx_files(linx_exemplo())
         divergencias, ligados = N.encontrar_divergencias(hr, linx)
         self.assertEqual(ligados, 1)
         self.assertIn('DÉBORA LIMA FONSECA', set(linx['Nome']), 'DEBORA (Linx) vira DÉBORA (RH)')
@@ -87,7 +119,7 @@ class Cruzamento(unittest.TestCase):
     def test_conferencia_total_do_linx_menos_ignorado_e_o_total_da_planilha(self):
         # O fluxo da demonstração: aprova o nome parecido e ignora as quatro pessoas fora do RH
         hr, _ = N.parse_hr_files(rh_exemplo())
-        linx, _, periodos = N.parse_linx_files(linx_exemplo())
+        linx, _, periodos, declarados = N.parse_linx_files(linx_exemplo())
         totais = N.totais_por_loja(linx)
         divergencias, _ = N.encontrar_divergencias(hr, linx)
         ignorados = []
@@ -97,9 +129,11 @@ class Cruzamento(unittest.TestCase):
             else:
                 ignorados.append({'nome': d['Linx_Nome'], 'valor': d['Valor']})
                 linx = linx[~N.pelo_nome(linx, d['Linx_Nome'])]
-        total = float(N.consolidar(hr, linx, list(totais), {})['Total Desconto'].sum())
-        c = N.conferencia(totais, ignorados)
+        total = float(N.consolidar(hr, linx, list(totais))['Total Desconto'].sum())
+        c = N.conferencia(totais, ignorados, declarados)
         self.assertEqual([o for o, _ in c['por_origem']], ['LOJA', 'RESTAURANTE'])
+        self.assertEqual(c['no_relatorio'], c['consumo'], 'a soma lida fecha com o Total geral impresso pelo Linx')
+        self.assertEqual(c['divergentes'], [])
         self.assertEqual(c['a_descontar'], round(total, 2), 'total do Linx − ignorado = total da planilha')
         self.assertEqual(N.mes_do_periodo(periodos), 'setembro de 2026')
         self.assertEqual(N.mes_do_periodo(['16/09/2026 a 15/10/2026']), '16/09/2026 a 15/10/2026')
@@ -119,9 +153,12 @@ class Cruzamento(unittest.TestCase):
         self.assertEqual(divergencias[0]['Tipo'], 'Repetido')
         self.assertEqual([r for _, r in divergencias[0]['Opcoes']], ['Posto · CPF 111.111.111-11', 'Hotel · CPF 222.222.222-22'])
 
-        sem_escolha = N.consolidar(hr, linx, ['LOJA'], {})
+        sem_escolha = N.consolidar(hr, linx, ['LOJA'])
         self.assertEqual(sem_escolha['Total Desconto'].sum(), 20.0, 'sem a revisão, o homônimo pagaria duas vezes')
-        com_escolha = N.consolidar(hr, linx, ['LOJA'], {'ANA': 0})
+        # Caminho real do app: a escolha na revisão prende o consumo à linha escolhida (fixar_linha)
+        N.fixar_linha(linx, 'ANA', 0)
+        self.assertIsNone(N.divergencia_repetido(hr, linx, 'ANA'), 'escolhido, o cartão some')
+        com_escolha = N.consolidar(hr, linx, ['LOJA'])
         self.assertEqual(com_escolha['Total Desconto'].tolist(), [10.0, 0.0])
 
     def test_cpf_fixa_a_linha_e_a_escolha_do_homonimo_nao_leva_junto(self):
@@ -131,17 +168,17 @@ class Cruzamento(unittest.TestCase):
         linx = pd.DataFrame([{'Nome': 'JOAO PEDRO SANTOS', 'Vencido': 0.0, 'Total': 80.0, 'Origem': 'LOJA'},
                              {'Nome': 'MARIA', 'Vencido': 0.0, 'Total': 20.0, 'Origem': 'LOJA'}])
         N.fixar_linha(linx, 'MARIA', 0)
-        repetido = N.divergencia_repetido(hr, linx, 'JOAO PEDRO SANTOS', {})
+        repetido = N.divergencia_repetido(hr, linx, 'JOAO PEDRO SANTOS')
         self.assertEqual(repetido['Valor'], 80.0, 'o consumo já fixado pelo CPF não entra no cartão do homônimo')
         N.fixar_linha(linx, 'JOAO PEDRO SANTOS', 1)
-        self.assertIsNone(N.divergencia_repetido(hr, linx, 'JOAO PEDRO SANTOS', {}))
-        merged = N.consolidar(hr, linx, ['LOJA'], {})
+        self.assertIsNone(N.divergencia_repetido(hr, linx, 'JOAO PEDRO SANTOS'))
+        merged = N.consolidar(hr, linx, ['LOJA'])
         self.assertEqual(merged[['Empresa', 'Total Desconto']].values.tolist(), [['Alfa', 20.0], ['Beta', 80.0]])
 
     def test_consolidar_inclui_quem_nao_consumiu(self):
         hr = pd.DataFrame([{'Nome': 'ANA', 'CPF': '', 'Empresa': 'Posto'}, {'Nome': 'BRUNO', 'CPF': '', 'Empresa': 'Posto'}])
         linx = pd.DataFrame([{'Nome': 'ANA', 'Vencido': 2.0, 'Total': 3.0, 'Origem': 'LOJA'}])
-        merged = N.consolidar(hr, linx, ['LOJA', 'RESTAURANTE'], {})
+        merged = N.consolidar(hr, linx, ['LOJA', 'RESTAURANTE'])
         self.assertEqual(merged[['Nome', 'Vencido__LOJA', 'Total__RESTAURANTE', 'Total Desconto']].values.tolist(),
                          [['ANA', 2.0, 0.0, 3.0], ['BRUNO', 0.0, 0.0, 0.0]])
 
@@ -152,7 +189,7 @@ class Exportacao(unittest.TestCase):
                            {'Nome': 'ÂNGELA', 'CPF': '', 'Empresa': 'Obras: Sede'},
                            {'Nome': 'ZÉLIA', 'CPF': '', 'Empresa': 'History'}])
         linx = pd.DataFrame([{'Nome': '=HYPERLINK("x")', 'Vencido': 1.5, 'Total': 2.0, 'Origem': 'LOJA'}])
-        self.merged = N.consolidar(hr, linx, ['LOJA'], {})
+        self.merged = N.consolidar(hr, linx, ['LOJA'])
 
     def test_excel_abas_validas_rodape_e_nome_como_texto(self):
         wb = load_workbook(N.gerar_excel(self.merged, ['LOJA']))
@@ -183,7 +220,7 @@ class Exportacao(unittest.TestCase):
         self.assertEqual(N.nome_do_arquivo(['16/09/2026 a 15/10/2026'], hoje=hoje), 'Fechamento_UnifyData_2026-09_a_2026-10')
         self.assertEqual(N.nome_do_arquivo([], hoje=hoje), 'Fechamento_UnifyData_2026-10-13', 'sem período, vale a data de hoje')
         self.assertEqual(N.nome_do_arquivo(['01/09/2026 a 30/09/2026'], demo=True, hoje=hoje), 'Fechamento_UnifyData_2026-09_DEMO')
-        _, _, periodos = N.parse_linx_files(linx_exemplo())
+        _, _, periodos, _ = N.parse_linx_files(linx_exemplo())
         self.assertEqual(N.nome_do_arquivo(periodos, hoje=hoje), 'Fechamento_UnifyData_2026-09')
 
     def test_csv_para_o_excel_brasileiro(self):
