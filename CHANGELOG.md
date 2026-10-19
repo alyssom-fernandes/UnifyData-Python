@@ -1,12 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Closing
+- The app now reads the *Total geral* line of each Linx report and
+  compares it with the sum of the people it read. The tape gets a
+  *Total geral no relatório* line, and a warning appears (also in the
+  printed report) when they differ. A report without that line is not
+  checked, and the app says so.
+
+### Code and tests
+- Removed the unused `escolhas` parameter from `consolidar` and
+  `divergencia_repetido`; the namesake test now uses `fixar_linha`, the
+  path the app really takes.
+- `parse_linx_files` also returns the *Total geral* of each report.
+- New test that runs the screen in sample mode (Streamlit's `AppTest`)
+  and checks the final total.
+- `requirements.txt` pins the tested versions; CI installs from it.
+
 ## 1.1.0 (2026-10-13)
 
 ### Closing
 - The result opens with a reconciliation tape, like an adding-machine
   roll: each store's total in Linx (kept before any card is ignored),
-  their sum, what was ignored and what goes to payroll. The sum matches
-  the grand total of the Linx reports.
+  their sum, what was ignored and what goes to payroll.
 - Each step's number is part of its title.
 - On wide screens (1200 px or more) the column is wider and the company
   table sits beside the tape.
@@ -18,8 +35,9 @@
 ### Outputs
 - Files are named after the month of the due dates
   (`Fechamento_UnifyData_2026-09.xlsx`).
-- In the sample mode, the Excel, the CSV and the report say the data is
-  made up, and the file names end in `_DEMO`.
+- In the sample mode, the Excel and the report say the data is made up,
+  and the file names (Excel, CSV) end in `_DEMO`. The CSV itself carries
+  no notice.
 - The report and the Excel header use the brand teal instead of burgundy,
   and the report summary shows the same reconciliation as the tape.
 

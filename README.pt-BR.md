@@ -24,6 +24,17 @@ arquivos de exemplo**: arquivos fictícios, nada é salvo. Ou experimente
 agora a [versão Web](https://alyssom-fernandes.github.io/UnifyData-Web/?demo=1),
 no navegador, sem instalar nada.
 
+## Por que dois repositórios
+
+Um problema, duas estratégias para ligar o Linx ao RH. Não é duplicação:
+cada uma serve a uma situação diferente dos dados.
+
+- **Por código, na [versão Web](https://github.com/alyssom-fernandes/UnifyData-Web):**
+  quando o Linx e o RH têm a matrícula em comum, o cruzamento é exato e
+  dispensa revisão.
+- **Por nome, aqui:** quando não há código em comum, o nome é a única
+  ligação, então nomes parecidos vão para uma pessoa confirmar.
+
 [![Testes](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml/badge.svg)](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.57+-ff4b4b?style=flat-square&logo=streamlit&logoColor=white)
@@ -152,14 +163,16 @@ resultado e no relatório.
 | Nomes | thefuzz (`token_sort_ratio`) para a semelhança |
 | Escrita | openpyxl para o .xlsx; o CSV e o relatório são feitos pelo app |
 | Fontes | Instrument Sans na interface; JetBrains Mono em rótulos e na assinatura, hospedadas no projeto (SIL OFL 1.1) |
-| Testes | `unittest`, a cada push (GitHub Actions) |
+| Testes | `unittest` e o `AppTest` do Streamlit, a cada push (GitHub Actions) |
 
 Algumas decisões por trás:
 
 - **As regras ficam separadas da tela.** O `nucleo.py` tem funções puras
   para ler, cruzar, consolidar e escrever o Excel e o CSV; o
   `unifydata.py` só desenha a tela e chama essas funções. Os testes rodam
-  as regras com os mesmos arquivos de exemplo, sem o Streamlit.
+  as regras com os mesmos arquivos de exemplo, sem o Streamlit, e mais um
+  teste percorre a tela no modo de exemplo com o `AppTest` do Streamlit e
+  confere o total final.
 - **Automático só quando não há ambiguidade.** O vínculo sozinho só
   acontece quando o nome é o mesmo depois de tirar acentos, maiúsculas e
   espaços, e o RH tem uma única grafia dele; o resto espera um clique.
@@ -167,6 +180,11 @@ Algumas decisões por trás:
   o consumo vai só para a linha escolhida, e as outras ficam zeradas. O
   consumo que um CPF já ligou a uma pessoa fica com ela, seja qual for a
   escolha feita depois para o nome.
+- **A fita se confere com o relatório.** Cada relatório do Linx termina
+  com uma linha *Total geral*. O app a lê, compara com a soma das pessoas
+  que leu e mostra um aviso, com uma linha *Total geral no relatório* na
+  fita, quando diferem (um bloco que o leitor não reconhecesse sumiria
+  sem ninguém ver).
 - **Cliques seguros.** Cada ação é um callback que roda antes do próximo
   desenho da tela, então um clique duplo num botão que já fez o trabalho
   não faz nada.
@@ -218,7 +236,7 @@ Iniciar_UnifyData.bat   atalho para Windows
 .streamlit/config.toml  temas claro e escuro, fontes, barra de ferramentas, telemetria desligada
 assets/favicon.png      a marca do UnifyData
 static/fonts/           Instrument Sans e JetBrains Mono (woff2), com as licenças
-tests/                  testes das regras, com os arquivos de exemplo
+tests/                  testes das regras e da tela no modo de exemplo, com os arquivos de exemplo
 exemplos/               arquivos fictícios nos formatos do Linx e do RH
 .github/workflows/      roda os testes a cada push
 docs/telas/             imagens deste README (com o revisao.gif) e da prévia para redes (og.png)

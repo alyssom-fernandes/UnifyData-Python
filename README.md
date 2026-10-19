@@ -25,6 +25,17 @@ arquivos de exemplo** (Try with sample files): made-up files, nothing is
 saved. Or try the [web version](https://alyssom-fernandes.github.io/UnifyData-Web/?demo=1)
 right now, in the browser, with nothing to install.
 
+## Why two repositories
+
+One problem, two strategies for matching Linx to HR. They are not a
+duplicate: each fits a different data situation.
+
+- **By code, in the [web version](https://github.com/alyssom-fernandes/UnifyData-Web):**
+  when Linx and HR share the employee code, the match is exact and
+  needs no review.
+- **By name, here:** when there is no common code, the name is the only
+  link, so similar names are shown to a person to confirm.
+
 [![Tests](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml/badge.svg)](https://github.com/alyssom-fernandes/UnifyData-Python/actions/workflows/testes.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.57+-ff4b4b?style=flat-square&logo=streamlit&logoColor=white)
@@ -153,14 +164,16 @@ the result and in the report.
 | Names | thefuzz (`token_sort_ratio`) for similarity |
 | Writing | openpyxl for the .xlsx; the CSV and the report are made by the app |
 | Fonts | Instrument Sans for the interface; JetBrains Mono for labels and the signature, hosted in the project (SIL OFL 1.1) |
-| Tests | `unittest`, on every push (GitHub Actions) |
+| Tests | `unittest` and Streamlit's `AppTest`, on every push (GitHub Actions) |
 
 Some decisions behind it:
 
 - **The rules live apart from the screen.** `nucleo.py` has pure
   functions for reading, matching, consolidating and writing the Excel
   and the CSV; `unifydata.py` only draws the screen and calls them. The
-  tests run the rules against the same sample files, without Streamlit.
+  tests run the rules against the same sample files, without Streamlit,
+  and one more test drives the screen in sample mode with Streamlit's
+  `AppTest` and checks the final total.
 - **Automatic only when the match is unambiguous.** A link is made alone
   only when the name is the same once accents, case and spaces are
   removed, and HR has a single spelling of it; everything else waits for
@@ -169,6 +182,11 @@ Some decisions behind it:
   the consumption goes to the chosen row only, and the other rows stay
   at zero. Consumption that a CPF has already tied to one person stays
   with that person, whatever is chosen later for the name.
+- **The tape checks itself against the report.** Each Linx report ends
+  with a *Total geral* line. The app reads it, compares it with the sum
+  of the people it read and shows a warning, with a *Total geral no
+  relatório* line on the tape, when they differ (a block the reader did
+  not recognize would otherwise drop out silently).
 - **Clicks are safe.** Every action is a callback that runs before the
   next redraw, so a double click on a button that already did its job
   does nothing.
@@ -221,7 +239,7 @@ Iniciar_UnifyData.bat   Windows launcher
 .streamlit/config.toml  light and dark themes, fonts, toolbar, telemetry off
 assets/favicon.png      the UnifyData mark
 static/fonts/           Instrument Sans and JetBrains Mono (woff2), with their licenses
-tests/                  tests for the rules, with the sample files
+tests/                  tests for the rules and for the screen in sample mode, with the sample files
 exemplos/               made-up files in the Linx and HR formats
 .github/workflows/      runs the tests on every push
 docs/telas/             images for this README (revisao.gif included) and the social preview (og.png)

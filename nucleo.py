@@ -181,8 +181,9 @@ def parse_hr_files(hr_files):
 def parse_linx_files(linx_files):
     """
     Lê relatórios CSV do Linx (Pendências por Responsável).
-    Retorna (DataFrame com Nome, Vencido, Total e Origem, avisos, períodos de vencimento) —
-    capturando os DOIS valores da linha Total separadamente.
+    Retorna (DataFrame com Nome, Vencido, Total e Origem, avisos, períodos de vencimento, "Total geral" de cada
+    relatório) — capturando os DOIS valores da linha Total separadamente. O "Total geral" é o valor que o próprio
+    Linx imprime no fim do relatório, guardado por origem para a conferência comparar com a soma dos responsáveis.
     """
     def to_float(s):
         try:
@@ -190,7 +191,7 @@ def parse_linx_files(linx_files):
         except (ValueError, AttributeError):
             return 0.0
 
-    records, avisos, periodos = [], [], []
+    records, avisos, periodos, declarados = [], [], [], {}
     for file in linx_files:
         try:
             content      = decodificar(file.getvalue())
@@ -209,10 +210,15 @@ def parse_linx_files(linx_files):
                     if m:
                         current_nome = ' '.join(m.group(1).strip().upper().split())
 
+                if re.match(r'total\s+geral', line.strip(), re.IGNORECASE):
+                    # O Total geral vem depois do último responsável: é o valor do Linx para conferir a soma lida
+                    campos = [p.strip() for p in line.split(';') if p.strip()]
+                    if len(campos) >= 2:
+                        declarados[origem] = declarados.get(origem, 0.0) + to_float(campos[2] if len(campos) >= 3 else campos[1])
+                    current_nome = None
+                    continue
+
                 if current_nome and line.strip().lower().startswith('total'):
-                    if re.match(r'total\s+geral', line.strip(), re.IGNORECASE):
-                        current_nome = None
-                        continue
                     campos = [p.strip() for p in line.split(';')]
                     # "Total;;18,50": sem vencido. Nos demais casos, campos vazios são ignorados.
                     parts = ['Total', '0', campos[2]] if len(campos) > 2 and not campos[1] and campos[2] else [p for p in campos if p]
@@ -231,7 +237,7 @@ def parse_linx_files(linx_files):
     df = pd.DataFrame(records) if records else pd.DataFrame(columns=['Nome', 'Vencido', 'Total', 'Origem'])
     # Linha do RH dona do consumo: SEM_LINHA enquanto o cruzamento é pelo nome; o índice da linha quando o CPF já decidiu
     df['Linha'] = SEM_LINHA
-    return df, avisos, periodos
+    return df, avisos, periodos, {o: round(v, 2) for o, v in declarados.items()}
 
 
 # ──────────────────────────────────────────────
@@ -259,10 +265,10 @@ def fixar_linha(linx_df, nome, linha):
     linx_df.loc[alvo, 'Linha'] = int(linha)
 
 
-def divergencia_repetido(hr_df, linx_df, nome, escolhas):
+def divergencia_repetido(hr_df, linx_df, nome):
     """Nome do Linx que aparece em mais de uma linha do RH (homônimos ou a mesma pessoa em duas empresas)."""
     linhas = hr_df[hr_df['Nome'] == nome]
-    if len(linhas) < 2 or nome in escolhas:
+    if len(linhas) < 2:
         return None
     consumo = linx_df[pelo_nome(linx_df, nome)]
     if consumo.empty:
@@ -294,7 +300,7 @@ def encontrar_divergencias(hr_df, linx_df):
     divergencias = []
     for nome in linx_df['Nome'].unique():
         if nome in hr_names:
-            repetido = divergencia_repetido(hr_df, linx_df, nome, {})
+            repetido = divergencia_repetido(hr_df, linx_df, nome)
             if repetido:
                 divergencias.append(repetido)
             continue
@@ -310,7 +316,7 @@ def encontrar_divergencias(hr_df, linx_df):
     return divergencias, ligados
 
 
-def consolidar(hr_df, linx_df, origens, escolhas):
+def consolidar(hr_df, linx_df, origens):
     """Uma linha por funcionário do RH, com vencido e total por origem e o Total Desconto."""
     vazio = linx_df is None or linx_df.empty
     por_nome = pd.DataFrame() if vazio else linx_df[linhas_fixas(linx_df) == SEM_LINHA]
@@ -332,10 +338,7 @@ def consolidar(hr_df, linx_df, origens, escolhas):
         if col not in merged:
             merged[col] = 0.0
     merged[valores] = merged[valores].fillna(0.0)
-    # Nome repetido no RH: o consumo pelo nome fica só na linha escolhida na revisão (sem descontar duas vezes)
-    for nome, linha in escolhas.items():
-        merged.loc[(merged['Nome'] == nome) & (merged['_linha'] != linha), valores] = 0.0
-    # Consumo cuja pessoa o CPF já definiu: soma direto na linha certa, sem passar pelo nome
+    # Consumo cuja pessoa já foi definida (pelo CPF ou pela escolha na revisão): soma direto na linha certa, sem passar pelo nome
     if not por_linha.empty:
         for prefixo in ('Vencido', 'Total'):
             extra = make_pivot(por_linha, 'Linha', prefixo).set_index('Linha')
@@ -346,21 +349,35 @@ def consolidar(hr_df, linx_df, origens, escolhas):
 
 
 def totais_por_loja(linx_df):
-    """Total de cada relatório do Linx (o "Total geral" dele), guardado antes de qualquer divergência ser ignorada."""
+    """Soma dos responsáveis lidos em cada relatório do Linx, guardada antes de qualquer divergência ser ignorada."""
     if linx_df is None or linx_df.empty:
         return {}
     return {o: round(float(v), 2) for o, v in linx_df.groupby('Origem', sort=False)['Total'].sum().items()}
 
 
-def conferencia(totais_linx, ignorados):
+def divergencias_do_total_geral(totais_linx, declarados):
+    """
+    Relatórios cuja soma dos responsáveis lidos difere do "Total geral" impresso pelo Linx: [(origem, lido, no relatório)].
+    Relatório sem a linha "Total geral" não entra: não há com o que comparar.
+    """
+    return [(o, lido, declarados[o]) for o, lido in totais_linx.items()
+            if o in declarados and abs(round(lido - declarados[o], 2)) >= 0.01]
+
+
+def conferencia(totais_linx, ignorados, declarados=None):
     """
     A conta do fechamento como numa fita de calculadora: o total de cada loja no Linx, a soma, o que foi
-    ignorado e o que vai para a folha (que precisa bater com o total da planilha).
+    ignorado e o que vai para a folha (que precisa bater com o total da planilha). Com os "Total geral" lidos dos
+    relatórios, confere também a soma lida contra o que o Linx imprimiu e lista as divergências.
     """
+    declarados = declarados or {}
     consumo = round(sum(totais_linx.values()), 2)
     ignorado = round(sum(x['valor'] for x in ignorados), 2)
+    completo = bool(totais_linx) and all(o in declarados for o in totais_linx)
     return {'por_origem': list(totais_linx.items()), 'consumo': consumo, 'ignorado': ignorado,
-            'a_descontar': round(consumo - ignorado, 2)}
+            'a_descontar': round(consumo - ignorado, 2),
+            'no_relatorio': round(sum(declarados[o] for o in totais_linx), 2) if completo else None,
+            'divergentes': divergencias_do_total_geral(totais_linx, declarados)}
 
 
 def mes_do_periodo(periodos):
