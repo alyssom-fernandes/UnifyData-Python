@@ -15,8 +15,8 @@ jobs:
         # O README promete Python 3.10 ou mais novo
         python: ['3.10', '3.12', '3.14']
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       # As mesmas versões do requirements.txt: o teste da tela usa o Streamlit
