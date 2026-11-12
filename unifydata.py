@@ -593,8 +593,8 @@ if st.session_state.processing_done:
                     st.caption('Algum relatório não traz a linha "Total geral", então a soma lida não pôde ser conferida com ele.')
 
                 # Fita de conferência: o total de cada loja no Linx (+), a soma (=), o ignorado (−) e o que vai para a folha
-                numero = lambda v: brl(v)[3:]  # na fita, só o número; o R$ fica no total
-                linha_fita = lambda rotulo, valor, op, classe='': (
+                numero = lambda v: brl(v)[3:]  # na fita, só o número; o R$ fica no total  # noqa: E731
+                linha_fita = lambda rotulo, valor, op, classe='': (  # noqa: E731
                     f'<div class="ud-fita-linha{classe}"><dt><span>{escape(rotulo)}</span></dt>'
                     f'<dd>{valor}<i class="ud-fita-op" aria-hidden="true">{op}</i></dd></div>')
                 mes = mes_do_periodo(st.session_state.periodos)

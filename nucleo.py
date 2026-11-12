@@ -141,7 +141,7 @@ def extrair_funcionarios(df, empresa):
 def ler_csv_rh(texto):
     """CSV de RH em DataFrame sem cabeçalho fixo (linhas de título não atrapalham), com ; ou , como separador."""
     primeiras = texto.splitlines()[:30]
-    cabecalho = next((l for l in primeiras if 'cpf' in l.lower()), primeiras[0] if primeiras else '')
+    cabecalho = next((l for l in primeiras if 'cpf' in l.lower()), primeiras[0] if primeiras else '')  # noqa: E741 (l = linha)
     sem_aspas = re.sub(r'"[^"]*"', '', cabecalho)
     sep = ';' if sem_aspas.count(';') >= sem_aspas.count(',') else ','
     return pd.DataFrame(list(csv.reader(io.StringIO(texto), delimiter=sep)))
@@ -477,7 +477,7 @@ def gerar_excel(merged_df, origem_cols, demo=False):
         ws.append(headers)
         ws.row_dimensions[1].height = 20
         for cell in ws[1]:
-            cell.fill = header_fill; cell.font = header_font; cell.alignment = center
+            cell.fill = header_fill; cell.font = header_font; cell.alignment = center  # noqa: E702 (estilo compacto, de propósito)
 
         emp_df = ordenar(merged_df[merged_df['Empresa'] == emp])
 
@@ -542,7 +542,7 @@ def gerar_csv(merged_df, origem_cols):
     for o in origem_cols:
         cab += [f'Vencido {o}', f'Total {o}']
     w.writerow([texto_seguro(c) for c in cab] + ['Total Desconto'])
-    num = lambda v: f"{float(v or 0):.2f}".replace('.', ',')
+    num = lambda v: f"{float(v or 0):.2f}".replace('.', ',')  # noqa: E731
     for _, row in merged_df.sort_values(['Empresa', 'Nome'], key=lambda s: s.map(normalizar)).iterrows():
         linha = [texto_seguro(row['Empresa']), texto_seguro(row['Nome']), formatar_cpf(row['CPF'])]
         for o in origem_cols:

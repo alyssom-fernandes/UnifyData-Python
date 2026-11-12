@@ -21,6 +21,8 @@ jobs:
           python-version: ${{ matrix.python }}
       # As mesmas versões do requirements.txt: o teste da tela usa o Streamlit
       - run: pip install -r requirements.txt
+      - run: pip install ruff
+      - run: ruff check .
       - run: python -m unittest discover -s tests -v
       # A tela também precisa compilar em todas as versões
       - run: python -m py_compile unifydata.py nucleo.py
