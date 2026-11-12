@@ -24,6 +24,8 @@ arquivos de exemplo**: arquivos fictícios, nada é salvo. Ou experimente
 agora a [versão Web](https://alyssom-fernandes.github.io/UnifyData-Web/?demo=1),
 no navegador, sem instalar nada.
 
+**Estudo de caso:** [como foi construído e por quê, com links para o código](https://alyssom-fernandes.github.io/portfolio/projetos/unifydata/) no meu portfólio.
+
 ## Por que dois repositórios
 
 Um problema, duas estratégias para ligar o Linx ao RH. Não é duplicação:
