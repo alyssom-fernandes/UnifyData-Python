@@ -25,6 +25,8 @@ arquivos de exemplo** (Try with sample files): made-up files, nothing is
 saved. Or try the [web version](https://alyssom-fernandes.github.io/UnifyData-Web/?demo=1)
 right now, in the browser, with nothing to install.
 
+**Case study:** [how it was built and why, with links to the code](https://alyssom-fernandes.github.io/portfolio/en/projetos/unifydata/) on my portfolio.
+
 ## Why two repositories
 
 One problem, two strategies for matching Linx to HR. They are not a
